@@ -111,7 +111,7 @@ const FormulaManager = () => {
                   <Label htmlFor="plateSelection">สูตรเลือกประเภทเพลท</Label>
                   <div className="tooltip">
                     <Info className="h-4 w-4 text-gray-400" />
-                    <span className="tooltiptext">สูตรเงื่อนไขในการเลือกประเภทเพลท เช่น size.width > 24 || size.height > 35 ? 'ตัด 2' : 'ตัด 4'</span>
+                    <span className="tooltiptext">สูตรเงื่อนไขในการเลือกประเภทเพลท เช่น size.width {`>`} 24 || size.height {`>`} 35 ? &apos;ตัด 2&apos; : &apos;ตัด 4&apos;</span>
                   </div>
                 </div>
                 <Textarea 

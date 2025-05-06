@@ -185,15 +185,15 @@ const SupplierManager = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-            <Select value={selectedPaperType || ""} onValueChange={(value) => {
-              setSelectedPaperType(value || null);
+            <Select value={selectedPaperType || "all"} onValueChange={(value) => {
+              setSelectedPaperType(value === "all" ? null : value);
               setSelectedPaperGrammage(null);
             }}>
               <SelectTrigger>
                 <SelectValue placeholder="กรองตามประเภทกระดาษ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">ทั้งหมด</SelectItem>
+                <SelectItem value="all">ทั้งหมด</SelectItem>
                 {paperTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>{type.label}</SelectItem>
                 ))}
@@ -201,15 +201,15 @@ const SupplierManager = () => {
             </Select>
 
             <Select 
-              value={selectedPaperGrammage || ""}
-              onValueChange={(value) => setSelectedPaperGrammage(value || null)}
+              value={selectedPaperGrammage || "all"}
+              onValueChange={(value) => setSelectedPaperGrammage(value === "all" ? null : value)}
               disabled={!selectedPaperType}
             >
               <SelectTrigger>
                 <SelectValue placeholder="กรองตามแกรม" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">ทั้งหมด</SelectItem>
+                <SelectItem value="all">ทั้งหมด</SelectItem>
                 {selectedPaperType && paperGrammages[selectedPaperType as keyof typeof paperGrammages]?.map((gram) => (
                   <SelectItem key={gram} value={gram}>{gram} gsm</SelectItem>
                 ))}

@@ -146,12 +146,12 @@ const PaperGrammageManager = () => {
           </div>
 
           <div className="mb-4">
-            <Select value={selectedPaperType || ""} onValueChange={(value) => setSelectedPaperType(value || null)}>
+            <Select value={selectedPaperType || "all"} onValueChange={(value) => setSelectedPaperType(value === "all" ? null : value)}>
               <SelectTrigger>
                 <SelectValue placeholder="กรองตามประเภทกระดาษ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">ทั้งหมด</SelectItem>
+                <SelectItem value="all">ทั้งหมด</SelectItem>
                 {paperTypes.map((type) => (
                   <SelectItem key={type.id} value={type.id}>{type.label}</SelectItem>
                 ))}
