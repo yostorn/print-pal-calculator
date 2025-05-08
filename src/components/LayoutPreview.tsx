@@ -219,6 +219,19 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       }
     }
   };
+
+  // This function helps provide a user-friendly description of the layout
+  const getLayoutDescription = () => {
+    if (printPerSheet === 0) return "ยังไม่สามารถวางงานได้";
+    
+    const effectiveJobWidth = rotation ? jobHeightInch : jobWidthInch;
+    const effectiveJobHeight = rotation ? jobWidthInch : jobHeightInch;
+    
+    const cols = Math.floor(paperWidth / effectiveJobWidth);
+    const rows = Math.floor(paperHeight / effectiveJobHeight);
+    
+    return `วางได้ ${cols} × ${rows} = ${printPerSheet} ชิ้น/แผ่น ${rotation ? '(หมุนงาน)' : ''}`;
+  };
   
   return (
     <Card>
@@ -274,6 +287,9 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
             </p>
             <p className="text-sm text-gray-700">
               เปอร์เซ็นต์ waste: <strong>{wastePercentage}%</strong>
+            </p>
+            <p className="text-sm text-gray-700 mt-1">
+              {getLayoutDescription()}
             </p>
           </div>
           <Button 

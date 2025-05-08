@@ -48,6 +48,7 @@ const PrintCalculator = () => {
   const [profitMargin, setProfitMargin] = useState("30");
   const [printPerSheet, setPrintPerSheet] = useState(0);
   const [validationError, setValidationError] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
 
   // Results
   const [results, setResults] = useState<any[]>([]);
@@ -98,14 +99,22 @@ const PrintCalculator = () => {
         width: paperSizes[0].width,
         height: paperSizes[0].height
       });
+      // Auto show layout preview when all needed data is available
+      if (width && height) {
+        setShowPreview(true);
+      }
     } else {
       setSelectedPaperSize(null);
+      setShowPreview(false);
     }
-  }, [paperType, paperSizes]);
+  }, [paperType, paperSizes, width, height]);
 
   // Handle layout change from the preview component
   const handleLayoutChange = (perSheet: number) => {
     setPrintPerSheet(perSheet);
+    if (perSheet > 0) {
+      setValidationError(""); // Clear validation error when layout is valid
+    }
   };
 
   // Add quantity field
@@ -238,6 +247,13 @@ const PrintCalculator = () => {
     setValidationError("");
     return true;
   };
+
+  // Show layout preview when all required fields are filled
+  useEffect(() => {
+    if (paperType && width && height && selectedPaperSize) {
+      setShowPreview(true);
+    }
+  }, [paperType, width, height, selectedPaperSize]);
 
   // Calculate results
   const calculate = async () => {
@@ -625,7 +641,7 @@ const PrintCalculator = () => {
           {/* Right column - results */}
           <div className="space-y-4">
             {/* Layout Preview */}
-            {selectedPaperSize && (
+            {selectedPaperSize && showPreview && (
               <LayoutPreview 
                 paperWidth={selectedPaperSize.width} 
                 paperHeight={selectedPaperSize.height}
@@ -635,7 +651,12 @@ const PrintCalculator = () => {
               />
             )}
             
-            <ResultsTable quantities={quantities} results={results} />
+            <ResultsTable 
+              quantities={quantities} 
+              results={results}
+              onSelectQuantity={(index) => setSelectedQuantityIndex(index)}
+              selectedQuantityIndex={selectedQuantityIndex}
+            />
             
             {results.length > 0 && (
               <BreakdownDetails

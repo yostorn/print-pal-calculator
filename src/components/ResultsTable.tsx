@@ -2,18 +2,24 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ResultsTableProps {
   quantities: string[];
   results: any[];
+  onSelectQuantity?: (index: number) => void;
+  selectedQuantityIndex?: number;
 }
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(value);
 };
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ quantities, results }) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ 
+  quantities, 
+  results, 
+  onSelectQuantity,
+  selectedQuantityIndex = 0
+}) => {
   if (!results.length) {
     return null;
   }
@@ -35,8 +41,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ quantities, results }) => {
           </TableHeader>
           <TableBody>
             {results.map((result, index) => (
-              <TableRow key={index}>
-                <TableCell>{parseInt(quantities[index]).toLocaleString()} ชิ้น</TableCell>
+              <TableRow 
+                key={index} 
+                className={onSelectQuantity ? "cursor-pointer hover:bg-gray-100" : ""}
+                data-state={selectedQuantityIndex === index ? "selected" : undefined}
+                onClick={() => onSelectQuantity && onSelectQuantity(index)}
+              >
+                <TableCell className={selectedQuantityIndex === index ? "font-bold" : ""}>
+                  {parseInt(quantities[index]).toLocaleString()} ชิ้น
+                </TableCell>
                 <TableCell>{formatCurrency(result.unitCost)}</TableCell>
                 <TableCell>{formatCurrency(result.totalCost)}</TableCell>
                 <TableCell>{result.sheets} แผ่น</TableCell>
@@ -44,6 +57,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ quantities, results }) => {
             ))}
           </TableBody>
         </Table>
+        {onSelectQuantity && (
+          <div className="mt-3 text-sm text-gray-500">
+            คลิกที่แถวเพื่อดูรายละเอียดต้นทุน
+          </div>
+        )}
       </CardContent>
     </Card>
   );
