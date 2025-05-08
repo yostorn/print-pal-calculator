@@ -12,8 +12,22 @@ import SupplierDropdown from "./SupplierDropdown";
 import SizeInputs from "./SizeInputs";
 import ResultsTable from "./ResultsTable";
 import BreakdownDetails from "./BreakdownDetails";
+import LayoutPreview from "./LayoutPreview";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { 
+  fetchPaperTypes,
+  fetchPaperSizes,
+  fetchPaperGrammages,
+  fetchSuppliers,
+  fetchPaperPrice,
+  fetchPlateCosts,
+  fetchCalculationSettings
+} from "@/services/supabaseService";
 
 const PrintCalculator = () => {
+  const { toast } = useToast();
+
   // Form state
   const [jobType, setJobType] = useState("");
   const [paperType, setPaperType] = useState("");
@@ -21,75 +35,76 @@ const PrintCalculator = () => {
   const [supplier, setSupplier] = useState("");
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
+  const [sizeUnit, setSizeUnit] = useState<"cm" | "inch">("cm");
   const [colors, setColors] = useState("4");
   const [hasCoating, setHasCoating] = useState(false);
   const [coatingCost, setCoatingCost] = useState("0");
   const [quantities, setQuantities] = useState<string[]>(["1000"]);
   const [wastage, setWastage] = useState("250");
+  const [hasDieCut, setHasDieCut] = useState(false);
+  const [dieCutCost, setDieCutCost] = useState("0");
+  const [shippingCost, setShippingCost] = useState("0");
+  const [packagingCost, setPackagingCost] = useState("0");
+  const [profitMargin, setProfitMargin] = useState("30");
+  const [printPerSheet, setPrintPerSheet] = useState(0);
 
   // Results
   const [results, setResults] = useState<any[]>([]);
   const [breakdowns, setBreakdowns] = useState<any[]>([]);
   const [selectedQuantityIndex, setSelectedQuantityIndex] = useState(0);
 
-  // Paper data (in real app, this would come from backend)
-  const paperData = {
-    // Each paper type has size options in inches and price per kg
-    "art-card": {
-      sizes: [
-        { width: 31, height: 43, name: "31×43 นิ้ว" },
-        { width: 24, height: 35, name: "24×35 นิ้ว" }
-      ],
-      prices: {
-        "210": { "supplier-a": 85, "supplier-b": 87, "supplier-c": 86 },
-        "230": { "supplier-a": 92, "supplier-b": 95, "supplier-c": 93 },
-        "250": { "supplier-a": 100, "supplier-b": 102, "supplier-c": 101 },
-        "300": { "supplier-a": 120, "supplier-b": 122, "supplier-c": 121 }
+  // Data fetching
+  const { data: paperTypes } = useQuery({
+    queryKey: ['paperTypes'],
+    queryFn: fetchPaperTypes
+  });
+
+  const { data: paperSizes } = useQuery({
+    queryKey: ['paperSizes', paperType],
+    queryFn: () => fetchPaperSizes(paperType),
+    enabled: !!paperType
+  });
+
+  const { data: plateCosts } = useQuery({
+    queryKey: ['plateCosts'],
+    queryFn: fetchPlateCosts
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: fetchCalculationSettings
+  });
+
+  // Set default values from settings
+  useEffect(() => {
+    if (settings) {
+      if (settings.default_wastage) {
+        setWastage(settings.default_wastage);
       }
-    },
-    "art-paper": {
-      sizes: [
-        { width: 31, height: 43, name: "31×43 นิ้ว" },
-        { width: 24, height: 35, name: "24×35 นิ้ว" }
-      ],
-      prices: {
-        "80": { "supplier-a": 45, "supplier-d": 47, "supplier-e": 46 },
-        "90": { "supplier-a": 50, "supplier-d": 52, "supplier-e": 51 },
-        "100": { "supplier-a": 55, "supplier-d": 57, "supplier-e": 56 },
-        "120": { "supplier-a": 65, "supplier-d": 67, "supplier-e": 66 },
-        "130": { "supplier-a": 70, "supplier-d": 72, "supplier-e": 71 },
-        "150": { "supplier-a": 80, "supplier-d": 82, "supplier-e": 81 }
-      }
-    },
-    "woodfree": {
-      sizes: [
-        { width: 31, height: 43, name: "31×43 นิ้ว" },
-        { width: 24, height: 35, name: "24×35 นิ้ว" }
-      ],
-      prices: {
-        "70": { "supplier-b": 40, "supplier-c": 41, "supplier-f": 39 },
-        "80": { "supplier-b": 45, "supplier-c": 46, "supplier-f": 44 },
-        "90": { "supplier-b": 50, "supplier-c": 51, "supplier-f": 49 },
-        "100": { "supplier-b": 55, "supplier-c": 56, "supplier-f": 54 }
-      }
-    },
-    "newsprint": {
-      sizes: [
-        { width: 31, height: 43, name: "31×43 นิ้ว" },
-        { width: 24, height: 35, name: "24×35 นิ้ว" }
-      ],
-      prices: {
-        "45": { "supplier-g": 30, "supplier-h": 31 },
-        "48": { "supplier-g": 32, "supplier-h": 33 },
-        "52": { "supplier-g": 35, "supplier-h": 36 }
+      if (settings.default_coating_cost) {
+        setCoatingCost(settings.default_coating_cost);
       }
     }
-  };
+  }, [settings]);
 
-  // Plate costs (in real app, this would be configured in backend)
-  const plateCosts = {
-    "ตัด 2": 800,
-    "ตัด 4": 500
+  // Get selected paper size
+  const [selectedPaperSize, setSelectedPaperSize] = useState<{width: number, height: number} | null>(null);
+  
+  useEffect(() => {
+    if (paperType && paperSizes && paperSizes.length > 0) {
+      // Default to the first paper size
+      setSelectedPaperSize({
+        width: paperSizes[0].width,
+        height: paperSizes[0].height
+      });
+    } else {
+      setSelectedPaperSize(null);
+    }
+  }, [paperType, paperSizes]);
+
+  // Handle layout change from the preview component
+  const handleLayoutChange = (perSheet: number) => {
+    setPrintPerSheet(perSheet);
   };
 
   // Add quantity field
@@ -118,9 +133,84 @@ const PrintCalculator = () => {
     setQuantities(newQuantities);
   };
 
+  // Get paper price from database or fall back to the hardcoded values
+  const getPaperPrice = async (paperTypeVal: string, paperGrammageVal: string, supplierVal: string) => {
+    // Try to get from database first
+    if (paperType && paperGrammage && supplier) {
+      try {
+        const priceData = await fetchPaperPrice(paperTypeVal, paperGrammageVal, supplierVal);
+        if (priceData) {
+          return priceData.price_per_kg;
+        }
+      } catch (error) {
+        console.error("Error fetching paper price:", error);
+      }
+    }
+    
+    // Fall back to hardcoded paper data if database fetch fails
+    const paperData = {
+      "art-card": {
+        prices: {
+          "210": { "supplier-a": 85, "supplier-b": 87, "supplier-c": 86 },
+          "230": { "supplier-a": 92, "supplier-b": 95, "supplier-c": 93 },
+          "250": { "supplier-a": 100, "supplier-b": 102, "supplier-c": 101 },
+          "300": { "supplier-a": 120, "supplier-b": 122, "supplier-c": 121 }
+        }
+      },
+      "art-paper": {
+        prices: {
+          "80": { "supplier-a": 45, "supplier-d": 47, "supplier-e": 46 },
+          "90": { "supplier-a": 50, "supplier-d": 52, "supplier-e": 51 },
+          "100": { "supplier-a": 55, "supplier-d": 57, "supplier-e": 56 },
+          "120": { "supplier-a": 65, "supplier-d": 67, "supplier-e": 66 },
+          "130": { "supplier-a": 70, "supplier-d": 72, "supplier-e": 71 },
+          "150": { "supplier-a": 80, "supplier-d": 82, "supplier-e": 81 }
+        }
+      },
+      "woodfree": {
+        prices: {
+          "70": { "supplier-b": 40, "supplier-c": 41, "supplier-f": 39 },
+          "80": { "supplier-b": 45, "supplier-c": 46, "supplier-f": 44 },
+          "90": { "supplier-b": 50, "supplier-c": 51, "supplier-f": 49 },
+          "100": { "supplier-b": 55, "supplier-c": 56, "supplier-f": 54 }
+        }
+      },
+      "newsprint": {
+        prices: {
+          "45": { "supplier-g": 30, "supplier-h": 31 },
+          "48": { "supplier-g": 32, "supplier-h": 33 },
+          "52": { "supplier-g": 35, "supplier-h": 36 }
+        }
+      }
+    };
+    
+    return paperData[paperTypeVal as keyof typeof paperData]?.prices[paperGrammageVal as keyof typeof paperData[keyof typeof paperData]["prices"]]?.[supplierVal as keyof typeof paperData[keyof typeof paperData]["prices"][keyof typeof paperData[keyof typeof paperData]["prices"]]] || 0;
+  };
+
+  // Get plate cost from database or fall back to hardcoded values
+  const getPlateCost = (plateType: string) => {
+    if (plateCosts) {
+      const plate = plateCosts.find(p => p.name === plateType);
+      if (plate) return plate.cost;
+    }
+    
+    // Fallback to hardcoded values
+    const plateCostsHardcoded = {
+      "ตัด 2": 800,
+      "ตัด 4": 500
+    };
+    
+    return plateCostsHardcoded[plateType as keyof typeof plateCostsHardcoded] || 0;
+  };
+
   // Calculate results
-  const calculate = () => {
-    if (!paperType || !paperGrammage || !supplier || !width || !height || !colors) {
+  const calculate = async () => {
+    if (!paperType || !paperGrammage || !supplier || !width || !height || !colors || !printPerSheet) {
+      toast({
+        title: "ข้อมูลไม่ครบถ้วน",
+        description: "กรุณาระบุข้อมูลให้ครบถ้วน",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -132,87 +222,62 @@ const PrintCalculator = () => {
       
       const qtyNum = parseInt(quantity);
       
-      // Get paper sizes available for the paper type
-      const availableSizes = paperData[paperType as keyof typeof paperData]?.sizes || [];
-      
-      // Convert job size from cm to inches
-      const jobWidthInch = parseFloat(width) / 2.54;
-      const jobHeightInch = parseFloat(height) / 2.54;
-      
-      // Find the optimal layout and paper size
-      let bestLayout = {
-        paperSize: availableSizes[0],
-        printPerSheet: 0,
-        orientation: "portrait" as "portrait" | "landscape"
-      };
-      
-      availableSizes.forEach(paperSize => {
-        // Try portrait orientation (job width × job height)
-        const portraitCols = Math.floor(paperSize.width / jobWidthInch);
-        const portraitRows = Math.floor(paperSize.height / jobHeightInch);
-        const portraitPerSheet = portraitCols * portraitRows;
-        
-        // Try landscape orientation (job height × job width)
-        const landscapeCols = Math.floor(paperSize.width / jobHeightInch);
-        const landscapeRows = Math.floor(paperSize.height / jobWidthInch);
-        const landscapePerSheet = landscapeCols * landscapeRows;
-        
-        // Use the better orientation
-        if (portraitPerSheet > bestLayout.printPerSheet) {
-          bestLayout = {
-            paperSize,
-            printPerSheet: portraitPerSheet,
-            orientation: "portrait"
-          };
-        }
-        
-        if (landscapePerSheet > bestLayout.printPerSheet) {
-          bestLayout = {
-            paperSize,
-            printPerSheet: landscapePerSheet,
-            orientation: "landscape"
-          };
-        }
-      });
+      // Get paper price 
+      const paperPricePerKg = await getPaperPrice(paperType, paperGrammage, supplier);
       
       // Calculate sheets needed
       const wastageNum = parseInt(wastage) || 0;
-      const sheetsNeeded = Math.ceil(qtyNum / bestLayout.printPerSheet);
+      const sheetsNeeded = Math.ceil(qtyNum / printPerSheet);
       const totalSheets = sheetsNeeded + wastageNum;
       
       // Determine plate type based on paper size
-      const plateType = (bestLayout.paperSize.width > 24 || bestLayout.paperSize.height > 35) 
+      const plateType = selectedPaperSize && 
+        (selectedPaperSize.width > 24 || selectedPaperSize.height > 35) 
         ? "ตัด 2" 
         : "ตัด 4";
       
       // Calculate costs
-      const plateCost = plateCosts[plateType] * parseInt(colors);
+      const plateCost = getPlateCost(plateType) * parseInt(colors);
       
       // Calculate paper weight and cost
-      const paperPricePerKg = paperData[paperType as keyof typeof paperData]?.prices[paperGrammage as keyof typeof paperData[keyof typeof paperData]["prices"]]?.[supplier as keyof typeof paperData[keyof typeof paperData]["prices"][keyof typeof paperData[keyof typeof paperData]["prices"]]] || 0;
+      if (!selectedPaperSize) continue;
       
-      const paperAreaSqM = (bestLayout.paperSize.width * bestLayout.paperSize.height) / (39.37 * 39.37); // Convert square inches to square meters
+      const paperAreaSqM = (selectedPaperSize.width * selectedPaperSize.height) / (39.37 * 39.37); // Convert square inches to square meters
       const paperWeightPerSheet = paperAreaSqM * (parseInt(paperGrammage) / 1000); // Weight in kg
       const sheetCost = paperWeightPerSheet * paperPricePerKg;
       const paperCost = totalSheets * sheetCost;
       
       // Calculate coating cost if applicable
-      const coatingCostTotal = hasCoating ? totalSheets * parseFloat(coatingCost) : 0;
+      const coatingCostTotal = hasCoating ? totalSheets * parseFloat(coatingCost || "0") : 0;
       
-      // Calculate ink cost (simplified estimation - in a real app this would be more complex)
+      // Calculate ink cost (simplified estimation)
       const inkCostPerSheet = parseInt(colors) * 0.5; // Simplified - 0.5 baht per color per sheet
       const inkCost = totalSheets * inkCostPerSheet;
       
+      // Calculate die-cut cost if applicable
+      const dieCutCostTotal = hasDieCut ? parseFloat(dieCutCost || "0") : 0;
+      
+      // Calculate shipping and packaging costs
+      const shippingCostTotal = parseFloat(shippingCost || "0");
+      const packagingCostTotal = parseFloat(packagingCost || "0");
+      
+      // Calculate total cost before profit
+      const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + dieCutCostTotal + shippingCostTotal + packagingCostTotal;
+      
+      // Calculate profit margin
+      const profitMarginPercent = parseFloat(profitMargin || "0") / 100;
+      const profit = baseCost * profitMarginPercent;
+      
       // Total cost and per unit cost
-      const totalCost = plateCost + paperCost + inkCost + coatingCostTotal;
+      const totalCost = baseCost + profit;
       const unitCost = totalCost / qtyNum;
       
       newResults.push({
         totalCost,
         unitCost,
-        printPerSheet: bestLayout.printPerSheet,
+        printPerSheet,
         sheets: totalSheets,
-        paperSize: bestLayout.paperSize.name,
+        paperSize: selectedPaperSize ? `${selectedPaperSize.width}×${selectedPaperSize.height} นิ้ว` : '',
       });
       
       newBreakdowns.push({
@@ -220,18 +285,30 @@ const PrintCalculator = () => {
         plateCost,
         paperCost,
         inkCost,
-        basePlateCost: plateCosts[plateType],
+        basePlateCost: getPlateCost(plateType),
         totalSheets,
         sheetCost,
         colorNumber: parseInt(colors),
         hasCoating,
         coatingCost: coatingCostTotal,
+        hasDieCut,
+        dieCutCost: dieCutCostTotal,
+        shippingCost: shippingCostTotal,
+        packagingCost: packagingCostTotal,
+        profitMargin: profitMarginPercent,
+        profit: profit,
+        baseCost,
         wastage: wastageNum
       });
     }
     
     setResults(newResults);
     setBreakdowns(newBreakdowns);
+    
+    toast({
+      title: "คำนวณเสร็จสิ้น",
+      description: "ราคาถูกคำนวณเรียบร้อยแล้ว"
+    });
   };
 
   return (
@@ -278,6 +355,7 @@ const PrintCalculator = () => {
               height={height} 
               onWidthChange={setWidth} 
               onHeightChange={setHeight}
+              onUnitChange={setSizeUnit}
             />
             
             <div className="space-y-2">
@@ -337,6 +415,79 @@ const PrintCalculator = () => {
               </div>
             )}
             
+            <div className="space-y-2">
+              <div className="flex items-center gap-1">
+                <Label htmlFor="hasDieCut">มีไดคัทหรือไม่</Label>
+                <div className="tooltip">
+                  <Info className="h-4 w-4 text-gray-400" />
+                  <span className="tooltiptext">เลือกหากต้องการไดคัท</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="hasDieCut" 
+                  checked={hasDieCut} 
+                  onCheckedChange={setHasDieCut}
+                />
+                <Label htmlFor="hasDieCut">
+                  {hasDieCut ? "มี" : "ไม่มี"}
+                </Label>
+              </div>
+            </div>
+            
+            {hasDieCut && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="dieCutCost">ค่าไดคัท (บาท)</Label>
+                  <div className="tooltip">
+                    <Info className="h-4 w-4 text-gray-400" />
+                    <span className="tooltiptext">ระบุค่าไดคัท</span>
+                  </div>
+                </div>
+                <Input 
+                  id="dieCutCost" 
+                  type="number" 
+                  min="0"
+                  value={dieCutCost} 
+                  onChange={(e) => setDieCutCost(e.target.value)}
+                />
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-1">
+                <Label htmlFor="shippingCost">ค่าขนส่ง (บาท)</Label>
+                <div className="tooltip">
+                  <Info className="h-4 w-4 text-gray-400" />
+                  <span className="tooltiptext">ระบุค่าขนส่ง</span>
+                </div>
+              </div>
+              <Input 
+                id="shippingCost" 
+                type="number" 
+                min="0"
+                value={shippingCost} 
+                onChange={(e) => setShippingCost(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-1">
+                <Label htmlFor="packagingCost">ค่าแพคกิ้ง (บาท)</Label>
+                <div className="tooltip">
+                  <Info className="h-4 w-4 text-gray-400" />
+                  <span className="tooltiptext">ระบุค่าแพคกิ้ง</span>
+                </div>
+              </div>
+              <Input 
+                id="packagingCost" 
+                type="number" 
+                min="0"
+                value={packagingCost} 
+                onChange={(e) => setPackagingCost(e.target.value)}
+              />
+            </div>
+            
             <div className="space-y-3">
               <div className="flex items-center gap-1">
                 <Label>ปริมาณที่ต้องการคำนวณ</Label>
@@ -395,6 +546,24 @@ const PrintCalculator = () => {
               />
             </div>
             
+            <div className="space-y-2">
+              <div className="flex items-center gap-1">
+                <Label htmlFor="profitMargin">กำไร (%)</Label>
+                <div className="tooltip">
+                  <Info className="h-4 w-4 text-gray-400" />
+                  <span className="tooltiptext">ระบุเปอร์เซ็นต์กำไรที่ต้องการ</span>
+                </div>
+              </div>
+              <Input 
+                id="profitMargin" 
+                type="number" 
+                min="0"
+                max="100"
+                value={profitMargin} 
+                onChange={(e) => setProfitMargin(e.target.value)}
+              />
+            </div>
+            
             <Button 
               className="w-full" 
               onClick={calculate}
@@ -405,7 +574,18 @@ const PrintCalculator = () => {
           </div>
           
           {/* Right column - results */}
-          <div>
+          <div className="space-y-4">
+            {/* Layout Preview */}
+            {selectedPaperSize && (
+              <LayoutPreview 
+                paperWidth={selectedPaperSize.width} 
+                paperHeight={selectedPaperSize.height}
+                jobWidth={sizeUnit === "cm" ? parseFloat(width) : parseFloat(width) * 2.54}
+                jobHeight={sizeUnit === "cm" ? parseFloat(height) : parseFloat(height) * 2.54}
+                onLayoutChange={handleLayoutChange}
+              />
+            )}
+            
             <ResultsTable quantities={quantities} results={results} />
             
             {results.length > 0 && (

@@ -9,7 +9,206 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      calculation_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      paper_grammages: {
+        Row: {
+          created_at: string | null
+          grammage: string
+          id: string
+          label: string
+          paper_type_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          grammage: string
+          id?: string
+          label: string
+          paper_type_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          grammage?: string
+          id?: string
+          label?: string
+          paper_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paper_grammages_paper_type_id_fkey"
+            columns: ["paper_type_id"]
+            isOneToOne: false
+            referencedRelation: "paper_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paper_prices: {
+        Row: {
+          created_at: string | null
+          id: string
+          paper_grammage_id: string | null
+          paper_type_id: string | null
+          price_per_kg: number
+          supplier_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          paper_grammage_id?: string | null
+          paper_type_id?: string | null
+          price_per_kg: number
+          supplier_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          paper_grammage_id?: string | null
+          paper_type_id?: string | null
+          price_per_kg?: number
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paper_prices_paper_grammage_id_fkey"
+            columns: ["paper_grammage_id"]
+            isOneToOne: false
+            referencedRelation: "paper_grammages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paper_prices_paper_type_id_fkey"
+            columns: ["paper_type_id"]
+            isOneToOne: false
+            referencedRelation: "paper_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paper_prices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paper_sizes: {
+        Row: {
+          created_at: string | null
+          height: number
+          id: string
+          name: string
+          paper_type_id: string | null
+          width: number
+        }
+        Insert: {
+          created_at?: string | null
+          height: number
+          id?: string
+          name: string
+          paper_type_id?: string | null
+          width: number
+        }
+        Update: {
+          created_at?: string | null
+          height?: number
+          id?: string
+          name?: string
+          paper_type_id?: string | null
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paper_sizes_paper_type_id_fkey"
+            columns: ["paper_type_id"]
+            isOneToOne: false
+            referencedRelation: "paper_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paper_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          label: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          label: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          label?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      plate_costs: {
+        Row: {
+          cost: number
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          cost: number
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          contact: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          contact?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          contact?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,48 +1,44 @@
 
 import React from "react";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ResultsTableProps {
   quantities: string[];
-  results: {
-    totalCost: number;
-    unitCost: number;
-    printPerSheet: number;
-    sheets: number;
-    paperSize: string;
-  }[];
+  results: any[];
 }
 
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(value);
+};
+
 const ResultsTable: React.FC<ResultsTableProps> = ({ quantities, results }) => {
-  if (quantities.length === 0 || results.length === 0) {
+  if (!results.length) {
     return null;
   }
 
   return (
-    <Card className="mt-6">
-      <CardContent className="pt-6">
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">ผลลัพธ์การคำนวณ</CardTitle>
+      </CardHeader>
+      <CardContent>
         <Table>
-          <TableCaption>ตารางเปรียบเทียบราคาตามปริมาณ</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>จำนวน</TableHead>
-              <TableHead>ราคารวม (บาท)</TableHead>
-              <TableHead>ราคาต่อชิ้น (บาท)</TableHead>
-              <TableHead>ดวงต่อแผ่น</TableHead>
-              <TableHead>จำนวนแผ่น</TableHead>
-              <TableHead>ขนาดกระดาษ</TableHead>
+              <TableHead>ราคาต่อชิ้น</TableHead>
+              <TableHead>ราคารวม</TableHead>
+              <TableHead>แผ่นพิมพ์</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {results.map((result, index) => (
               <TableRow key={index}>
-                <TableCell className="font-medium">{quantities[index]}</TableCell>
-                <TableCell>{result.totalCost.toLocaleString("th-TH", { maximumFractionDigits: 2 })}</TableCell>
-                <TableCell>{result.unitCost.toLocaleString("th-TH", { maximumFractionDigits: 2 })}</TableCell>
-                <TableCell>{result.printPerSheet}</TableCell>
-                <TableCell>{result.sheets}</TableCell>
-                <TableCell>{result.paperSize}</TableCell>
+                <TableCell>{parseInt(quantities[index]).toLocaleString()} ชิ้น</TableCell>
+                <TableCell>{formatCurrency(result.unitCost)}</TableCell>
+                <TableCell>{formatCurrency(result.totalCost)}</TableCell>
+                <TableCell>{result.sheets} แผ่น</TableCell>
               </TableRow>
             ))}
           </TableBody>
