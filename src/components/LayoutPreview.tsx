@@ -1,9 +1,10 @@
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { RotateCw, Maximize } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { RotateCw, Maximize, Eye } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface LayoutPreviewProps {
@@ -27,12 +28,13 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   const [printPerSheet, setPrintPerSheet] = useState<number>(0);
   const [wastePercentage, setWastePercentage] = useState<number>(0);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   
   // Convert cm to inches
   const jobWidthInch = jobWidth / 2.54;
   const jobHeightInch = jobHeight / 2.54;
   
-  const calculateLayout = () => {
+  const calculateLayout = useCallback(() => {
     if (!jobWidth || !jobHeight || !paperWidth || !paperHeight) {
       return { printPerSheet: 0, layout: [], wastePercentage: 0 };
     }
@@ -73,9 +75,9 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       layout,
       wastePercentage: parseFloat(wastePercentage.toFixed(2))
     };
-  };
+  }, [paperWidth, paperHeight, jobWidth, jobHeight, jobWidthInch, jobHeightInch]);
   
-  useEffect(() => {
+  const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -118,6 +120,8 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     
     const totalPrints = cols * rows;
     setPrintPerSheet(totalPrints);
+    
+    // Important: Always call onLayoutChange with the current print per sheet value
     onLayoutChange(totalPrints);
     
     // Calculate waste percentage
@@ -153,11 +157,15 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
         ctx.fillStyle = '#bfdbfe';
       }
     }
+  }, [jobWidth, jobHeight, paperWidth, paperHeight, rotation, jobWidthInch, jobHeightInch, onLayoutChange]);
 
-    // Also update the detailed view if it's open
-    if (detailOpen) renderDetailedView();
-    
-  }, [paperWidth, paperHeight, jobWidth, jobHeight, rotation, onLayoutChange, detailOpen]);
+  useEffect(() => {
+    renderCanvas();
+    // Render detailed view if the dialog is open
+    if (detailOpen || sheetOpen) {
+      renderDetailedView();
+    }
+  }, [paperWidth, paperHeight, jobWidth, jobHeight, rotation, detailOpen, sheetOpen, renderCanvas]);
   
   const toggleRotation = () => {
     setRotation(!rotation);
@@ -232,74 +240,53 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     
     return `วางได้ ${cols} × ${rows} = ${printPerSheet} ชิ้น/แผ่น ${rotation ? '(หมุนงาน)' : ''}`;
   };
+
+  // Handle sheet/dialog opening
+  const handleOpenLayoutDetails = () => {
+    if (window.innerWidth < 768) {
+      setSheetOpen(true);
+    } else {
+      setDetailOpen(true);
+    }
+  };
   
   return (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg">แบบการวางงาน</CardTitle>
-          <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="ml-auto"
-                onClick={() => setDetailOpen(true)}
-              >
-                <Maximize className="h-4 w-4 mr-1" />
-                ขยาย
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl w-full">
-              <DialogHeader>
-                <DialogTitle>รายละเอียดการวางงาน</DialogTitle>
-              </DialogHeader>
-              <div className="p-2">
-                <div className="mb-4 grid grid-cols-2 gap-4">
-                  <div>
-                    <p><strong>ขนาดกระดาษ:</strong> {paperWidth} x {paperHeight} นิ้ว</p>
-                    <p><strong>ขนาดงาน:</strong> {jobWidth} x {jobHeight} ซม. ({(jobWidth / 2.54).toFixed(2)} x {(jobHeight / 2.54).toFixed(2)} นิ้ว)</p>
-                    <p><strong>พิมพ์ได้:</strong> {printPerSheet} ชิ้น/แผ่น</p>
-                  </div>
-                  <div>
-                    <p><strong>เปอร์เซ็นต์ waste:</strong> {wastePercentage}%</p>
-                    <p><strong>วิธีการจัดวางที่ดีที่สุด:</strong> {rotation ? "โดยหมุนใบพิมพ์" : "โดยไม่หมุนใบพิมพ์"}</p>
-                  </div>
-                </div>
-                <AspectRatio ratio={16/10} className="border">
-                  <canvas 
-                    ref={detailCanvasRef} 
-                    width={800}
-                    height={500}
-                    className="w-full h-full"
-                  />
-                </AspectRatio>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-auto"
+              onClick={toggleRotation}
+            >
+              <RotateCw className="h-4 w-4 mr-1" />
+              หมุน
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleOpenLayoutDetails}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              ดูรายละเอียด
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="text-sm text-gray-700 mb-1">
-              พิมพ์ได้: <strong>{printPerSheet}</strong> ชิ้น/แผ่น
-            </p>
-            <p className="text-sm text-gray-700">
-              เปอร์เซ็นต์ waste: <strong>{wastePercentage}%</strong>
-            </p>
-            <p className="text-sm text-gray-700 mt-1">
-              {getLayoutDescription()}
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={toggleRotation}
-          >
-            <RotateCw className="h-4 w-4 mr-1" />
-            หมุน
-          </Button>
+        <div className="mb-4">
+          <p className="text-sm text-gray-700 mb-1">
+            พิมพ์ได้: <strong>{printPerSheet}</strong> ชิ้น/แผ่น
+          </p>
+          <p className="text-sm text-gray-700">
+            เปอร์เซ็นต์ waste: <strong>{wastePercentage}%</strong>
+          </p>
+          <p className="text-sm text-gray-700 mt-1">
+            {getLayoutDescription()}
+          </p>
         </div>
         <div className="border rounded bg-gray-50">
           <canvas 
@@ -309,6 +296,72 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
             className="w-full h-auto"
           />
         </div>
+
+        {/* Dialog for larger screens */}
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent className="max-w-4xl w-full">
+            <DialogHeader>
+              <DialogTitle>รายละเอียดการวางงาน</DialogTitle>
+            </DialogHeader>
+            <div className="p-2">
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p><strong>ขนาดกระดาษ:</strong> {paperWidth} x {paperHeight} นิ้ว</p>
+                  <p><strong>ขนาดงาน:</strong> {jobWidth} x {jobHeight} ซม. ({(jobWidth / 2.54).toFixed(2)} x {(jobHeight / 2.54).toFixed(2)} นิ้ว)</p>
+                  <p><strong>พิมพ์ได้:</strong> {printPerSheet} ชิ้น/แผ่น</p>
+                </div>
+                <div>
+                  <p><strong>เปอร์เซ็นต์ waste:</strong> {wastePercentage}%</p>
+                  <p><strong>วิธีการจัดวางที่ดีที่สุด:</strong> {rotation ? "โดยหมุนใบพิมพ์" : "โดยไม่หมุนใบพิมพ์"}</p>
+                </div>
+              </div>
+              <AspectRatio ratio={16/10} className="border">
+                <canvas 
+                  ref={detailCanvasRef} 
+                  width={800}
+                  height={500}
+                  className="w-full h-full"
+                />
+              </AspectRatio>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Sheet for mobile */}
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent className="w-[90%] sm:max-w-md overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>รายละเอียดการวางงาน</SheetTitle>
+              <SheetDescription>ข้อมูลการจัดวางงานพิมพ์บนกระดาษ</SheetDescription>
+            </SheetHeader>
+            <div className="mt-6">
+              <div className="mb-4 space-y-2">
+                <p><strong>ขนาดกระดาษ:</strong> {paperWidth} x {paperHeight} นิ้ว</p>
+                <p><strong>ขนาดงาน:</strong> {jobWidth} x {jobHeight} ซม. ({(jobWidth / 2.54).toFixed(2)} x {(jobHeight / 2.54).toFixed(2)} นิ้ว)</p>
+                <p><strong>พิมพ์ได้:</strong> {printPerSheet} ชิ้น/แผ่น</p>
+                <p><strong>เปอร์เซ็นต์ waste:</strong> {wastePercentage}%</p>
+                <p><strong>วิธีการจัดวางที่ดีที่สุด:</strong> {rotation ? "โดยหมุนใบพิมพ์" : "โดยไม่หมุนใบพิมพ์"}</p>
+              </div>
+              <div className="border rounded">
+                <canvas 
+                  ref={detailCanvasRef} 
+                  width={500}
+                  height={300}
+                  className="w-full h-auto"
+                />
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button onClick={() => setRotation(!rotation)} className="mr-2">
+                  <RotateCw className="h-4 w-4 mr-2" />
+                  หมุน
+                </Button>
+                <Button onClick={() => setSheetOpen(false)}>
+                  ปิด
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </CardContent>
     </Card>
   );

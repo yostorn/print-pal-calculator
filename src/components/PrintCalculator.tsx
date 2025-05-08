@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -99,6 +98,7 @@ const PrintCalculator = () => {
         width: paperSizes[0].width,
         height: paperSizes[0].height
       });
+      
       // Auto show layout preview when all needed data is available
       if (width && height) {
         setShowPreview(true);
@@ -111,6 +111,7 @@ const PrintCalculator = () => {
 
   // Handle layout change from the preview component
   const handleLayoutChange = (perSheet: number) => {
+    console.log("Layout changed, printPerSheet:", perSheet);
     setPrintPerSheet(perSheet);
     if (perSheet > 0) {
       setValidationError(""); // Clear validation error when layout is valid
@@ -235,8 +236,8 @@ const PrintCalculator = () => {
       setValidationError("กรุณาระบุจำนวนสี");
       return false;
     }
-    if (!printPerSheet || printPerSheet <= 0) {
-      setValidationError("กรุณาตรวจสอบการจัดวางงาน");
+    if (printPerSheet <= 0) {
+      setValidationError("กรุณาตรวจสอบการจัดวางงาน (คลิกที่ปุ่มดูรายละเอียด)");
       return false;
     }
     if (!quantities[0]) {
@@ -645,8 +646,8 @@ const PrintCalculator = () => {
               <LayoutPreview 
                 paperWidth={selectedPaperSize.width} 
                 paperHeight={selectedPaperSize.height}
-                jobWidth={sizeUnit === "cm" ? parseFloat(width) : parseFloat(width) * 2.54}
-                jobHeight={sizeUnit === "cm" ? parseFloat(height) : parseFloat(height) * 2.54}
+                jobWidth={parseFloat(width || "0") || 0}
+                jobHeight={parseFloat(height || "0") || 0}
                 onLayoutChange={handleLayoutChange}
               />
             )}
