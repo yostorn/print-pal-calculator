@@ -47,6 +47,7 @@ const PrintCalculator = () => {
   const [packagingCost, setPackagingCost] = useState("0");
   const [profitMargin, setProfitMargin] = useState("30");
   const [printPerSheet, setPrintPerSheet] = useState(0);
+  const [validationError, setValidationError] = useState("");
 
   // Results
   const [results, setResults] = useState<any[]>([]);
@@ -203,12 +204,51 @@ const PrintCalculator = () => {
     return plateCostsHardcoded[plateType as keyof typeof plateCostsHardcoded] || 0;
   };
 
+  // Validate the form before calculation
+  const validateForm = () => {
+    if (!paperType) {
+      setValidationError("กรุณาเลือกประเภทกระดาษ");
+      return false;
+    }
+    if (!paperGrammage) {
+      setValidationError("กรุณาเลือกแกรมกระดาษ");
+      return false;
+    }
+    if (!supplier) {
+      setValidationError("กรุณาเลือกซัพพลายเออร์");
+      return false;
+    }
+    if (!width || !height) {
+      setValidationError("กรุณาระบุขนาดงาน");
+      return false;
+    }
+    if (!colors) {
+      setValidationError("กรุณาระบุจำนวนสี");
+      return false;
+    }
+    if (!printPerSheet || printPerSheet <= 0) {
+      setValidationError("กรุณาตรวจสอบการจัดวางงาน");
+      return false;
+    }
+    if (!quantities[0]) {
+      setValidationError("กรุณาระบุปริมาณที่ต้องการคำนวณ");
+      return false;
+    }
+
+    setValidationError("");
+    return true;
+  };
+
   // Calculate results
   const calculate = async () => {
-    if (!paperType || !paperGrammage || !supplier || !width || !height || !colors || !printPerSheet) {
+    console.log("Starting calculation with values:", {
+      paperType, paperGrammage, supplier, width, height, printPerSheet, quantities
+    });
+
+    if (!validateForm()) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาระบุข้อมูลให้ครบถ้วน",
+        description: validationError || "กรุณาระบุข้อมูลให้ครบถ้วน",
         variant: "destructive"
       });
       return;
@@ -224,11 +264,13 @@ const PrintCalculator = () => {
       
       // Get paper price 
       const paperPricePerKg = await getPaperPrice(paperType, paperGrammage, supplier);
+      console.log("Paper price per kg:", paperPricePerKg);
       
       // Calculate sheets needed
       const wastageNum = parseInt(wastage) || 0;
       const sheetsNeeded = Math.ceil(qtyNum / printPerSheet);
       const totalSheets = sheetsNeeded + wastageNum;
+      console.log("Total sheets needed:", totalSheets, "(", sheetsNeeded, "sheets + ", wastageNum, "wastage)");
       
       // Determine plate type based on paper size
       const plateType = selectedPaperSize && 
@@ -238,6 +280,7 @@ const PrintCalculator = () => {
       
       // Calculate costs
       const plateCost = getPlateCost(plateType) * parseInt(colors);
+      console.log("Plate cost:", plateCost);
       
       // Calculate paper weight and cost
       if (!selectedPaperSize) continue;
@@ -246,6 +289,7 @@ const PrintCalculator = () => {
       const paperWeightPerSheet = paperAreaSqM * (parseInt(paperGrammage) / 1000); // Weight in kg
       const sheetCost = paperWeightPerSheet * paperPricePerKg;
       const paperCost = totalSheets * sheetCost;
+      console.log("Paper cost:", paperCost);
       
       // Calculate coating cost if applicable
       const coatingCostTotal = hasCoating ? totalSheets * parseFloat(coatingCost || "0") : 0;
@@ -320,6 +364,12 @@ const PrintCalculator = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left column - inputs */}
           <div className="space-y-4">
+            {validationError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+                {validationError}
+              </div>
+            )}
+          
             <div className="space-y-2">
               <div className="flex items-center gap-1">
                 <Label htmlFor="jobType">ประเภทงาน</Label>
@@ -567,7 +617,6 @@ const PrintCalculator = () => {
             <Button 
               className="w-full" 
               onClick={calculate}
-              disabled={!paperType || !paperGrammage || !supplier || !width || !height || !quantities[0]}
             >
               คำนวณ
             </Button>

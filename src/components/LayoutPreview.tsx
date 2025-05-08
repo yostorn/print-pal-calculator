@@ -1,8 +1,10 @@
 
 import React, { useRef, useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RotateCw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { RotateCw, Maximize } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface LayoutPreviewProps {
   paperWidth: number;  // Width of paper in inches
@@ -20,8 +22,11 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   onLayoutChange
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const detailCanvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState<boolean>(false);
   const [printPerSheet, setPrintPerSheet] = useState<number>(0);
+  const [wastePercentage, setWastePercentage] = useState<number>(0);
+  const [detailOpen, setDetailOpen] = useState(false);
   
   // Convert cm to inches
   const jobWidthInch = jobWidth / 2.54;
@@ -29,7 +34,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   
   const calculateLayout = () => {
     if (!jobWidth || !jobHeight || !paperWidth || !paperHeight) {
-      return { printPerSheet: 0, layout: [] };
+      return { printPerSheet: 0, layout: [], wastePercentage: 0 };
     }
     
     // Try both orientations and use the one that fits more prints
@@ -58,9 +63,15 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       }
     }
     
+    // Calculate waste percentage
+    const usedArea = layout.length * (shouldRotate ? jobWidthInch * jobHeightInch : jobWidthInch * jobHeightInch);
+    const totalArea = paperWidth * paperHeight;
+    const wastePercentage = ((totalArea - usedArea) / totalArea) * 100;
+    
     return {
       printPerSheet: cols * rows,
-      layout
+      layout,
+      wastePercentage: parseFloat(wastePercentage.toFixed(2))
     };
   };
   
@@ -109,6 +120,12 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     setPrintPerSheet(totalPrints);
     onLayoutChange(totalPrints);
     
+    // Calculate waste percentage
+    const usedArea = totalPrints * (effectiveJobWidth * effectiveJobHeight);
+    const totalArea = paperWidth * paperHeight;
+    const waste = ((totalArea - usedArea) / totalArea) * 100;
+    setWastePercentage(parseFloat(waste.toFixed(2)));
+    
     // Draw job items
     ctx.fillStyle = '#bfdbfe';
     ctx.strokeStyle = '#3b82f6';
@@ -136,29 +153,137 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
         ctx.fillStyle = '#bfdbfe';
       }
     }
+
+    // Also update the detailed view if it's open
+    if (detailOpen) renderDetailedView();
     
-  }, [paperWidth, paperHeight, jobWidth, jobHeight, rotation, onLayoutChange]);
+  }, [paperWidth, paperHeight, jobWidth, jobHeight, rotation, onLayoutChange, detailOpen]);
   
   const toggleRotation = () => {
     setRotation(!rotation);
   };
+
+  const renderDetailedView = () => {
+    const canvas = detailCanvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Scale factor to fit the paper on canvas
+    const scale = Math.min(
+      (canvas.width - 60) / paperWidth,
+      (canvas.height - 60) / paperHeight
+    );
+    
+    // Draw paper
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(30, 30, paperWidth * scale, paperHeight * scale);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(30, 30, paperWidth * scale, paperHeight * scale);
+    
+    // Calculate layout
+    const effectiveJobWidth = rotation ? jobHeightInch : jobWidthInch;
+    const effectiveJobHeight = rotation ? jobWidthInch : jobHeightInch;
+    
+    const cols = Math.floor(paperWidth / effectiveJobWidth);
+    const rows = Math.floor(paperHeight / effectiveJobHeight);
+    
+    // Draw job items with more detail
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const rectX = 30 + (x * effectiveJobWidth * scale);
+        const rectY = 30 + (y * effectiveJobHeight * scale);
+        const rectWidth = effectiveJobWidth * scale;
+        const rectHeight = effectiveJobHeight * scale;
+        
+        ctx.fillStyle = y % 2 === 0 ? '#e6f0fd' : '#bfdbfe';
+        ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+        
+        // Add item number
+        ctx.fillStyle = '#1e40af';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          `${y * cols + x + 1}`, 
+          rectX + rectWidth / 2, 
+          rectY + rectHeight / 2
+        );
+      }
+    }
+  };
   
   return (
     <Card>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg">แบบการวางงาน</CardTitle>
+          <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-auto"
+                onClick={() => setDetailOpen(true)}
+              >
+                <Maximize className="h-4 w-4 mr-1" />
+                ขยาย
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl w-full">
+              <DialogHeader>
+                <DialogTitle>รายละเอียดการวางงาน</DialogTitle>
+              </DialogHeader>
+              <div className="p-2">
+                <div className="mb-4 grid grid-cols-2 gap-4">
+                  <div>
+                    <p><strong>ขนาดกระดาษ:</strong> {paperWidth} x {paperHeight} นิ้ว</p>
+                    <p><strong>ขนาดงาน:</strong> {jobWidth} x {jobHeight} ซม. ({(jobWidth / 2.54).toFixed(2)} x {(jobHeight / 2.54).toFixed(2)} นิ้ว)</p>
+                    <p><strong>พิมพ์ได้:</strong> {printPerSheet} ชิ้น/แผ่น</p>
+                  </div>
+                  <div>
+                    <p><strong>เปอร์เซ็นต์ waste:</strong> {wastePercentage}%</p>
+                    <p><strong>วิธีการจัดวางที่ดีที่สุด:</strong> {rotation ? "โดยหมุนใบพิมพ์" : "โดยไม่หมุนใบพิมพ์"}</p>
+                  </div>
+                </div>
+                <AspectRatio ratio={16/10} className="border">
+                  <canvas 
+                    ref={detailCanvasRef} 
+                    width={800}
+                    height={500}
+                    className="w-full h-full"
+                  />
+                </AspectRatio>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">แบบการวางงาน</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm">พิมพ์ได้: <strong>{printPerSheet}</strong> ชิ้น/แผ่น</span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={toggleRotation}
-            >
-              <RotateCw className="h-4 w-4 mr-1" />
-              หมุน
-            </Button>
+          <div>
+            <p className="text-sm text-gray-700 mb-1">
+              พิมพ์ได้: <strong>{printPerSheet}</strong> ชิ้น/แผ่น
+            </p>
+            <p className="text-sm text-gray-700">
+              เปอร์เซ็นต์ waste: <strong>{wastePercentage}%</strong>
+            </p>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={toggleRotation}
+          >
+            <RotateCw className="h-4 w-4 mr-1" />
+            หมุน
+          </Button>
         </div>
         <div className="border rounded bg-gray-50">
           <canvas 
