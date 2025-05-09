@@ -405,7 +405,7 @@ const PrintCalculator = () => {
             
             {printPerSheet > 0 && (
               <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
-                เรียบร้อย! การจัดวางง��นที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น
+                เรียบร้อย! การจัดวา���ง��นที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น
               </div>
             )}
           </>
@@ -685,49 +685,36 @@ const PrintCalculator = () => {
               />
             </div>
 
-            {/* Add the layout details button here before the calculate button */}
-            {showPreview && (
-              <>
-                {isMobile ? (
-                  <Sheet open={isLayoutDetailsOpen} onOpenChange={setIsLayoutDetailsOpen}>
-                    <SheetTrigger asChild>
-                      <Button 
-                        className="w-full mb-2" 
-                        variant="outline"
-                        onClick={handleOpenLayoutDetails}
-                      >
-                        <Eye className="mr-2 h-4 w-4" /> ดูรายละเอียดการจัดวางงาน
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent>
-                      <SheetHeader>
-                        <SheetTitle>รายละเอียดการจัดวางงาน</SheetTitle>
-                      </SheetHeader>
-                      <div className="mt-6">
-                        <LayoutDetailsContent />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                ) : (
-                  <Dialog open={isLayoutDetailsOpen} onOpenChange={setIsLayoutDetailsOpen}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        className="w-full mb-2" 
-                        variant="outline"
-                        onClick={handleOpenLayoutDetails}
-                      >
-                        <Eye className="mr-2 h-4 w-4" /> ดูรายละเอียดการจัดวางงาน
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px]">
-                      <DialogHeader>
-                        <DialogTitle>รายละเอียดการจัดวางงาน</DialogTitle>
-                      </DialogHeader>
-                      <LayoutDetailsContent />
-                    </DialogContent>
-                  </Dialog>
-                )}
-              </>
+            {/* Always show layout details button regardless of showPreview state */}
+            <Button 
+              className="w-full mb-2" 
+              variant="outline"
+              onClick={handleOpenLayoutDetails}
+            >
+              <Eye className="mr-2 h-4 w-4" /> ดูรายละเอียดการจัดวางงาน
+            </Button>
+            
+            {/* Create the dialog/sheet for layout details but keep it invisible until button is clicked */}
+            {isMobile ? (
+              <Sheet open={isLayoutDetailsOpen} onOpenChange={setIsLayoutDetailsOpen}>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>รายละเอียดการจัดวางงาน</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6">
+                    <LayoutDetailsContent />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            ) : (
+              <Dialog open={isLayoutDetailsOpen} onOpenChange={setIsLayoutDetailsOpen}>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>รายละเอียดการจัดวางงาน</DialogTitle>
+                  </DialogHeader>
+                  <LayoutDetailsContent />
+                </DialogContent>
+              </Dialog>
             )}
             
             <Button 
@@ -763,6 +750,7 @@ const PrintCalculator = () => {
               results={results}
               onSelectQuantity={(index) => setSelectedQuantityIndex(index)}
               selectedQuantityIndex={selectedQuantityIndex}
+              onViewLayoutDetails={handleOpenLayoutDetails}
             />
             
             {results.length > 0 && (
