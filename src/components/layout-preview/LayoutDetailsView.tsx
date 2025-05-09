@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { RotateCw } from "lucide-react";
 import LayoutCanvas from "./LayoutCanvas";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface LayoutDetailsViewProps {
   isOpen: boolean;
@@ -34,20 +35,42 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
   printPerSheet,
   wastePercentage
 }) => {
+  const hasSufficientData = !!paperWidth && !!paperHeight && !!jobWidth && !!jobHeight;
+
   // Common content for both dialog and sheet
   const DetailsContent = () => (
     <div className="space-y-4">
-      <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <p><strong>ขนาดกระดาษ:</strong> {paperWidth} x {paperHeight} นิ้ว</p>
-          <p><strong>ขนาดงาน:</strong> {jobWidth} x {jobHeight} ซม. ({(jobWidth / 2.54).toFixed(2)} x {(jobHeight / 2.54).toFixed(2)} นิ้ว)</p>
-          <p><strong>พิมพ์ได้:</strong> {printPerSheet} ชิ้น/แผ่น</p>
-        </div>
-        <div>
-          <p><strong>เปอร์เซ็นต์ waste:</strong> {wastePercentage}%</p>
-          <p><strong>วิธีการจัดวางที่ดีที่สุด:</strong> {rotation ? "โดยหมุนใบพิมพ์" : "โดยไม่หมุนใบพิมพ์"}</p>
-        </div>
-      </div>
+      {!hasSufficientData && (
+        <Alert className="mb-4 bg-yellow-50 border-yellow-200">
+          <AlertTitle className="text-yellow-800">กรุณาเลือกข้อมูลให้ครบถ้วน</AlertTitle>
+          <AlertDescription className="text-yellow-700">
+            {!paperWidth || !paperHeight 
+              ? "กรุณาเลือกประเภทกระดาษก่อน" 
+              : "กรุณาระบุขนาดงานให้ครบถ้วน"}
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {hasSufficientData && (
+        <>
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p><strong>ขนาดกระดาษ:</strong> {paperWidth} x {paperHeight} นิ้ว</p>
+              <p><strong>ขนาดงาน:</strong> {jobWidth} x {jobHeight} ซม. ({(jobWidth / 2.54).toFixed(2)} x {(jobHeight / 2.54).toFixed(2)} นิ้ว)</p>
+              <p><strong>พิมพ์ได้:</strong> {printPerSheet} ชิ้น/แผ่น</p>
+            </div>
+            <div>
+              <p><strong>เปอร์เซ็นต์ waste:</strong> {wastePercentage}%</p>
+              <p><strong>วิธีการจัดวางที่ดีที่สุด:</strong> {rotation ? "โดยหมุนใบพิมพ์" : "โดยไม่หมุนใบพิมพ์"}</p>
+              <Button onClick={onRotate} size="sm" className="mt-2" variant="outline">
+                <RotateCw className="h-4 w-4 mr-2" />
+                หมุนงาน
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+
       {isMobile ? (
         <div className="border rounded">
           <LayoutCanvas
@@ -78,12 +101,17 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
         </AspectRatio>
       )}
       
+      {hasSufficientData && printPerSheet > 0 && (
+        <Alert className="mb-4 bg-green-50 border-green-200">
+          <AlertTitle className="text-green-800">การจัดวางงานเรียบร้อย</AlertTitle>
+          <AlertDescription className="text-green-700">
+            สามารถวางได้ {printPerSheet} ชิ้นต่อแผ่น {rotation ? '(หมุนงาน)' : ''}
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {isMobile && (
         <div className="mt-4 flex justify-end">
-          <Button onClick={onRotate} className="mr-2">
-            <RotateCw className="h-4 w-4 mr-2" />
-            หมุน
-          </Button>
           <Button onClick={onClose}>
             ปิด
           </Button>
