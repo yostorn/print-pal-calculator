@@ -11,6 +11,7 @@ interface ResultsTableProps {
   results: any[];
   onSelectQuantity?: (index: number) => void;
   selectedQuantityIndex?: number;
+  onViewLayoutDetails?: () => void; // Added this prop for the layout details button
 }
 
 const formatCurrency = (value: number) => {
@@ -21,7 +22,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   quantities, 
   results, 
   onSelectQuantity,
-  selectedQuantityIndex = 0
+  selectedQuantityIndex = 0,
+  onViewLayoutDetails // Add this prop
 }) => {
   if (!results.length) {
     return null;
@@ -30,7 +32,18 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">ผลลัพธ์การคำนวณ</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg">ผลลัพธ์การคำนวณ</CardTitle>
+          {onViewLayoutDetails && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onViewLayoutDetails}
+            >
+              <Eye className="h-4 w-4 mr-2" /> ดูรายละเอียดการจัดวางงาน
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
