@@ -2,9 +2,9 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { RotateCw, Maximize, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { RotateCw, Eye } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface LayoutPreviewProps {
@@ -87,16 +87,19 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // If no dimensions yet, show placeholder
-    if (!jobWidth || !jobHeight || !paperWidth || !paperHeight) {
+    // If paper dimensions aren't set yet or job dimensions aren't set, show placeholder
+    if (!paperWidth || !paperHeight || !jobWidth || !jobHeight) {
       ctx.fillStyle = '#f3f4f6';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#9ca3af';
       ctx.font = '16px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('กรุณาระบุขนาดงานและกระดาษ', canvas.width / 2, canvas.height / 2);
+      ctx.fillText(!paperWidth || !paperHeight ? 'กรุณาเลือกประเภทกระดาษ' : 'กรุณาระบุขนาดงาน', canvas.width / 2, canvas.height / 2);
       return;
     }
+    
+    console.log("Rendering canvas with paper size:", paperWidth, "x", paperHeight, "inches");
+    console.log("Job size:", jobWidth, "x", jobHeight, "cm");
     
     // Scale factor to fit the paper on canvas
     const scale = Math.min(
@@ -157,9 +160,12 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
         ctx.fillStyle = '#bfdbfe';
       }
     }
+    
+    console.log("Canvas rendering complete. Items per sheet:", totalPrints);
   }, [jobWidth, jobHeight, paperWidth, paperHeight, rotation, jobWidthInch, jobHeightInch, onLayoutChange]);
 
   useEffect(() => {
+    console.log("LayoutPreview useEffect triggered with:", { paperWidth, paperHeight, jobWidth, jobHeight });
     renderCanvas();
     // Render detailed view if the dialog is open
     if (detailOpen || sheetOpen) {
@@ -180,6 +186,17 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // If we don't have dimensions, show placeholder
+    if (!paperWidth || !paperHeight || !jobWidth || !jobHeight) {
+      ctx.fillStyle = '#f3f4f6';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(!paperWidth || !paperHeight ? 'กรุณาเลือกประเภทกระดาษ' : 'กรุณาระบุขนาดงาน', canvas.width / 2, canvas.height / 2);
+      return;
+    }
     
     // Scale factor to fit the paper on canvas
     const scale = Math.min(
@@ -230,7 +247,9 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
 
   // This function helps provide a user-friendly description of the layout
   const getLayoutDescription = () => {
-    if (printPerSheet === 0) return "ยังไม่สามารถวางงานได้";
+    if (!jobWidth || !jobHeight) return "กรุณาระบุขนาดงาน";
+    if (!paperWidth || !paperHeight) return "กรุณาเลือกประเภทกระดาษ";
+    if (printPerSheet === 0) return "ไม่สามารถจัดวางงานได้ (ขนาดใหญ่เกินไป)";
     
     const effectiveJobWidth = rotation ? jobHeightInch : jobWidthInch;
     const effectiveJobHeight = rotation ? jobWidthInch : jobHeightInch;
@@ -261,6 +280,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
               size="sm" 
               className="ml-auto"
               onClick={toggleRotation}
+              disabled={!jobWidth || !jobHeight || !paperWidth || !paperHeight}
             >
               <RotateCw className="h-4 w-4 mr-1" />
               หมุน
@@ -269,6 +289,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
               variant="outline" 
               size="sm"
               onClick={handleOpenLayoutDetails}
+              disabled={!jobWidth || !jobHeight || !paperWidth || !paperHeight}
             >
               <Eye className="h-4 w-4 mr-1" />
               ดูรายละเอียด
@@ -301,7 +322,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
         <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
           <DialogContent className="max-w-4xl w-full">
             <DialogHeader>
-              <DialogTitle>รายละเอียดการวางงาน</DialogTitle>
+              <DialogTitle>รายละเอียดการจัดวางงาน</DialogTitle>
             </DialogHeader>
             <div className="p-2">
               <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -331,7 +352,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetContent className="w-[90%] sm:max-w-md overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>รายละเอียดการวางงาน</SheetTitle>
+              <SheetTitle>รายละเอียดการจัดวางงาน</SheetTitle>
               <SheetDescription>ข้อมูลการจัดวางงานพิมพ์บนกระดาษ</SheetDescription>
             </SheetHeader>
             <div className="mt-6">

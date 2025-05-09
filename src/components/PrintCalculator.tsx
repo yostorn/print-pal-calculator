@@ -23,8 +23,8 @@ import {
   fetchPlateCosts,
   fetchCalculationSettings
 } from "@/services/supabaseService";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const PrintCalculator = () => {
@@ -96,6 +96,7 @@ const PrintCalculator = () => {
   // Get selected paper size
   const [selectedPaperSize, setSelectedPaperSize] = useState<{width: number, height: number} | null>(null);
   
+  // Modified: Update this useEffect to show layout preview as soon as paper type is selected
   useEffect(() => {
     if (paperType && paperSizes && paperSizes.length > 0) {
       // Default to the first paper size
@@ -104,30 +105,56 @@ const PrintCalculator = () => {
         height: paperSizes[0].height
       });
       
-      // Auto show layout preview when all needed data is available
-      if (width && height) {
-        setShowPreview(true);
-      }
+      // Always show preview when paper size is available
+      setShowPreview(true);
     } else {
       setSelectedPaperSize(null);
       setShowPreview(false);
     }
-  }, [paperType, paperSizes, width, height]);
+  }, [paperType, paperSizes]);
+
+  // Modified: Add separate effect for updating layout preview when dimensions change
+  useEffect(() => {
+    if (width && height && selectedPaperSize) {
+      console.log("Dimensions changed, showing preview with:", { width, height, paperSize: selectedPaperSize });
+      setShowPreview(true);
+      // Clear validation errors if dimensions are provided
+      if (validationError.includes("ขนาดงาน")) {
+        setValidationError("");
+      }
+    }
+  }, [width, height, selectedPaperSize]);
 
   // Handle layout change from the preview component
   const handleLayoutChange = (perSheet: number) => {
     console.log("Layout changed, printPerSheet:", perSheet);
     setPrintPerSheet(perSheet);
     if (perSheet > 0) {
-      setValidationError(""); // Clear validation error when layout is valid
+      // Clear all validation errors related to layout
+      if (validationError.includes("การจัดวาง")) {
+        setValidationError("");
+      }
     }
   };
 
   const handleOpenLayoutDetails = () => {
-    setIsLayoutDetailsOpen(true);
-    if (printPerSheet <= 0) {
-      setValidationError(""); // Clear validation error so they can see the preview
+    // Clear validation errors when opening layout details
+    if (validationError.includes("การจัดวาง") || validationError.includes("รายละเอียด")) {
+      setValidationError("");
     }
+    
+    // Check if we have the necessary data to show a layout
+    if (!paperType) {
+      setValidationError("กรุณาเลือกประเภทกระดาษก่อนดูรายละเอียดการจัดวางงาน");
+      return;
+    }
+    
+    if (!width || !height) {
+      setValidationError("กรุณาระบุขนาดงานก่อนดูรายละเอียดการจัดวางงาน");
+      return;
+    }
+    
+    setIsLayoutDetailsOpen(true);
   };
 
   const handleCloseLayoutDetails = () => {
@@ -253,7 +280,8 @@ const PrintCalculator = () => {
       return false;
     }
     if (printPerSheet <= 0) {
-      setValidationError("กรุณาตรวจสอบการจัดวางงาน (คลิกที่ปุ่มดูรายละเอียดด้านล่าง)");
+      setValidationError("กรุณาตรวจสอบการจัดวางงาน (คลิกที่ปุ่มดูรายละเอียดการจัดวางงาน)");
+      handleOpenLayoutDetails(); // Automatically open layout details
       return false;
     }
     if (!quantities[0]) {
@@ -405,14 +433,14 @@ const PrintCalculator = () => {
             
             {printPerSheet > 0 && (
               <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
-                เรียบร้อย! การจัดวา���ง��นที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น
+                เรียบร้อย! การจัดวางงานที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น
               </div>
             )}
           </>
         )}
       </div>
       
-      {showPreview && selectedPaperSize && (
+      {selectedPaperSize && (
         <div className="border rounded-md p-4">
           <LayoutPreview 
             paperWidth={selectedPaperSize.width} 
@@ -421,6 +449,12 @@ const PrintCalculator = () => {
             jobHeight={parseFloat(height || "0") || 0}
             onLayoutChange={handleLayoutChange}
           />
+        </div>
+      )}
+      
+      {!selectedPaperSize && (
+        <div className="p-4 bg-yellow-50 text-yellow-700 rounded-md">
+          กรุณาเลือกประเภทกระดาษและระบุขนาดงานเพื่อดูการจัดวาง
         </div>
       )}
     </div>
@@ -685,7 +719,7 @@ const PrintCalculator = () => {
               />
             </div>
 
-            {/* Always show layout details button regardless of showPreview state */}
+            {/* Always show layout details button */}
             <Button 
               className="w-full mb-2" 
               variant="outline"
@@ -727,7 +761,7 @@ const PrintCalculator = () => {
           
           {/* Right column - results */}
           <div className="space-y-4">
-            {/* Layout Preview */}
+            {/* Layout Preview - Always show when data is available */}
             {selectedPaperSize && showPreview && (
               <div>
                 <LayoutPreview 

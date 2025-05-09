@@ -26,7 +26,7 @@ const Index = () => {
         <div className="bg-white p-4 rounded-lg border shadow-sm mb-6">
           <div className="text-sm text-blue-600 mb-2 flex items-center">
             <span className="mr-2">ℹ️</span>
-            <span>คำแนะนำ: กรอกข้อมูลด้านล่างให้ครบถ้วน จากนั้นคลิกที่ปุ่ม "ดูรายละเอียดการจัดวางงาน" ก่อนคลิก "คำนวณ"</span>
+            <span>คำแนะนำ: กรอกประเภทกระดาษ, แกรมกระดาษ, ซัพพลายเออร์, และขนาดงาน จากนั้นคลิกที่ปุ่ม "ดูรายละเอียดการจัดวางงาน" เพื่อดูและปรับการจัดวาง</span>
           </div>
         </div>
         
