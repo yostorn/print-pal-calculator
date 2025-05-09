@@ -25,11 +25,11 @@ import {
 } from "@/services/supabaseService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const PrintCalculator = () => {
   const { toast } = useToast();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   // Form state
   const [jobType, setJobType] = useState("");
@@ -405,7 +405,7 @@ const PrintCalculator = () => {
             
             {printPerSheet > 0 && (
               <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
-                เรียบร้อย! การจัดวางงานที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น
+                เรียบร้อย! การจัดวางง��นที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น
               </div>
             )}
           </>
