@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Info, Plus, Minus } from "lucide-react";
+import { Info, Plus, Minus, Eye } from "lucide-react";
 import PaperTypeDropdown from "./PaperTypeDropdown";
 import PaperGrammageDropdown from "./PaperGrammageDropdown";
 import SupplierDropdown from "./SupplierDropdown";
@@ -23,9 +23,13 @@ import {
   fetchPlateCosts,
   fetchCalculationSettings
 } from "@/services/supabaseService";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useMobile } from "@/hooks/use-mobile";
 
 const PrintCalculator = () => {
   const { toast } = useToast();
+  const isMobile = useMobile();
 
   // Form state
   const [jobType, setJobType] = useState("");
@@ -48,6 +52,7 @@ const PrintCalculator = () => {
   const [printPerSheet, setPrintPerSheet] = useState(0);
   const [validationError, setValidationError] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [isLayoutDetailsOpen, setIsLayoutDetailsOpen] = useState(false);
 
   // Results
   const [results, setResults] = useState<any[]>([]);
@@ -116,6 +121,17 @@ const PrintCalculator = () => {
     if (perSheet > 0) {
       setValidationError(""); // Clear validation error when layout is valid
     }
+  };
+
+  const handleOpenLayoutDetails = () => {
+    setIsLayoutDetailsOpen(true);
+    if (printPerSheet <= 0) {
+      setValidationError(""); // Clear validation error so they can see the preview
+    }
+  };
+
+  const handleCloseLayoutDetails = () => {
+    setIsLayoutDetailsOpen(false);
   };
 
   // Add quantity field
@@ -237,7 +253,7 @@ const PrintCalculator = () => {
       return false;
     }
     if (printPerSheet <= 0) {
-      setValidationError("กรุณาตรวจสอบการจัดวางงาน (คลิกที่ปุ่มดูรายละเอียด)");
+      setValidationError("กรุณาตรวจสอบการจัดวางงาน (คลิกที่ปุ่มดูรายละเอียดด้านล่าง)");
       return false;
     }
     if (!quantities[0]) {
@@ -371,6 +387,44 @@ const PrintCalculator = () => {
       description: "ราคาถูกคำนวณเรียบร้อยแล้ว"
     });
   };
+
+  // Component to render the layout details dialog/sheet content
+  const LayoutDetailsContent = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {selectedPaperSize && (
+          <>
+            <h3 className="font-medium">ขนาดกระดาษ</h3>
+            <p>{selectedPaperSize.width} × {selectedPaperSize.height} นิ้ว</p>
+            
+            <h3 className="font-medium mt-4">ขนาดงาน</h3>
+            <p>{width} × {height} {sizeUnit}</p>
+            
+            <h3 className="font-medium mt-4">จำนวนชิ้นต่อแผ่น</h3>
+            <p className="text-lg font-bold">{printPerSheet > 0 ? printPerSheet : "รอการคำนวณ..."} ชิ้นต่อแผ่น</p>
+            
+            {printPerSheet > 0 && (
+              <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
+                เรียบร้อย! การจัดวางงานที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      
+      {showPreview && selectedPaperSize && (
+        <div className="border rounded-md p-4">
+          <LayoutPreview 
+            paperWidth={selectedPaperSize.width} 
+            paperHeight={selectedPaperSize.height}
+            jobWidth={parseFloat(width || "0") || 0}
+            jobHeight={parseFloat(height || "0") || 0}
+            onLayoutChange={handleLayoutChange}
+          />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <Card className="w-full">
@@ -630,6 +684,51 @@ const PrintCalculator = () => {
                 onChange={(e) => setProfitMargin(e.target.value)}
               />
             </div>
+
+            {/* Add the layout details button here before the calculate button */}
+            {showPreview && (
+              <>
+                {isMobile ? (
+                  <Sheet open={isLayoutDetailsOpen} onOpenChange={setIsLayoutDetailsOpen}>
+                    <SheetTrigger asChild>
+                      <Button 
+                        className="w-full mb-2" 
+                        variant="outline"
+                        onClick={handleOpenLayoutDetails}
+                      >
+                        <Eye className="mr-2 h-4 w-4" /> ดูรายละเอียดการจัดวางงาน
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent>
+                      <SheetHeader>
+                        <SheetTitle>รายละเอียดการจัดวางงาน</SheetTitle>
+                      </SheetHeader>
+                      <div className="mt-6">
+                        <LayoutDetailsContent />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                ) : (
+                  <Dialog open={isLayoutDetailsOpen} onOpenChange={setIsLayoutDetailsOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="w-full mb-2" 
+                        variant="outline"
+                        onClick={handleOpenLayoutDetails}
+                      >
+                        <Eye className="mr-2 h-4 w-4" /> ดูรายละเอียดการจัดวางงาน
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>รายละเอียดการจัดวางงาน</DialogTitle>
+                      </DialogHeader>
+                      <LayoutDetailsContent />
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </>
+            )}
             
             <Button 
               className="w-full" 
@@ -643,13 +742,20 @@ const PrintCalculator = () => {
           <div className="space-y-4">
             {/* Layout Preview */}
             {selectedPaperSize && showPreview && (
-              <LayoutPreview 
-                paperWidth={selectedPaperSize.width} 
-                paperHeight={selectedPaperSize.height}
-                jobWidth={parseFloat(width || "0") || 0}
-                jobHeight={parseFloat(height || "0") || 0}
-                onLayoutChange={handleLayoutChange}
-              />
+              <div>
+                <LayoutPreview 
+                  paperWidth={selectedPaperSize.width} 
+                  paperHeight={selectedPaperSize.height}
+                  jobWidth={parseFloat(width || "0") || 0}
+                  jobHeight={parseFloat(height || "0") || 0}
+                  onLayoutChange={handleLayoutChange}
+                />
+                {printPerSheet > 0 && (
+                  <div className="mt-2 text-center text-sm text-green-600 font-medium">
+                    เรียบร้อย! ชิ้นงานสามารถวางได้ {printPerSheet} ชิ้นต่อแผ่น
+                  </div>
+                )}
+              </div>
             )}
             
             <ResultsTable 
