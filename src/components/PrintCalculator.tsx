@@ -11,7 +11,7 @@ import SupplierDropdown from "./SupplierDropdown";
 import SizeInputs from "./SizeInputs";
 import ResultsTable from "./ResultsTable";
 import BreakdownDetails from "./BreakdownDetails";
-import LayoutPreview from "./LayoutPreview";
+import LayoutPreview from "./layout-preview/LayoutPreview";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { 
