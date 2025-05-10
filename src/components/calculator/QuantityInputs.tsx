@@ -3,6 +3,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 interface QuantityInputsProps {
   quantities: string[];
@@ -26,6 +27,7 @@ const QuantityInputs: React.FC<QuantityInputsProps> = ({
 
   return (
     <div className="space-y-3">
+      <Label className="text-sm font-medium">ระบุจำนวนที่ต้องการพิมพ์</Label>
       {quantities.map((qty, index) => (
         <div key={index} className="flex items-center gap-2">
           <Input
@@ -34,6 +36,7 @@ const QuantityInputs: React.FC<QuantityInputsProps> = ({
             min="1"
             value={qty}
             onChange={(e) => handleQuantityChange(index, e.target.value)}
+            className={!qty ? "border-yellow-400 focus:ring-yellow-500" : ""}
           />
           {quantities.length > 1 && (
             <Button

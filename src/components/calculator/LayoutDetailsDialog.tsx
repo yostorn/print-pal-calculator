@@ -5,6 +5,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useIsMobile } from "@/hooks/use-mobile";
 import LayoutPreview from "../layout-preview/LayoutPreview";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Info, Ruler, RefreshCcw } from "lucide-react";
 
 interface LayoutDetailsDialogProps {
   isOpen: boolean;
@@ -46,43 +49,127 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
     allDimensionsProvided
   });
 
+  // Force a recalculation of the layout
+  const handleForceCalculation = () => {
+    if (hasPaperDimensions && hasJobDimensions) {
+      // Call onLayoutChange directly to trigger a recalculation
+      const jobWidthInch = parseFloat(width) / (sizeUnit === "cm" ? 2.54 : 1);
+      const jobHeightInch = parseFloat(height) / (sizeUnit === "cm" ? 2.54 : 1);
+      
+      if (paperSize) {
+        const cols = Math.floor(paperSize.width / jobWidthInch);
+        const rows = Math.floor(paperSize.height / jobHeightInch);
+        const calculated = cols * rows;
+        
+        console.log("Forcing layout calculation:", {
+          paperWidth: paperSize.width,
+          paperHeight: paperSize.height,
+          jobWidthInch,
+          jobHeightInch,
+          cols,
+          rows,
+          calculated
+        });
+        
+        onLayoutChange(calculated > 0 ? calculated : 0);
+      }
+    }
+  };
+
   // Component to render the layout details dialog/sheet content
   const LayoutDetailsContent = () => (
     <div className="space-y-4">
-      {!allDimensionsProvided && (
-        <Alert variant="destructive">
-          <AlertTitle>กรุณากรอกข้อมูลให้ครบ</AlertTitle>
-          <AlertDescription>
-            {!hasPaperDimensions && "กรุณาเลือกประเภทกระดาษ"}
-            {!hasPaperDimensions && !hasJobDimensions && " และ "}
-            {!hasJobDimensions && "กรุณาระบุขนาดงาน"}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-2">
-        {paperSize ? (
-          <>
-            <h3 className="font-medium">ขนาดกระดาษ</h3>
-            <p>{paperSize.width} × {paperSize.height} นิ้ว</p>
-            
-            <h3 className="font-medium mt-4">ขนาดงาน</h3>
-            <p>{width} × {height} {sizeUnit}</p>
-            
-            <h3 className="font-medium mt-4">จำนวนชิ้นต่อแผ่น</h3>
-            <p className="text-lg font-bold">{printPerSheet > 0 ? printPerSheet : "รอการคำนวณ..."} ชิ้นต่อแผ่น</p>
-            
-            {printPerSheet > 0 && (
-              <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
-                เรียบร้อย! การจัดวางงานที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="p-4 bg-yellow-50 text-yellow-700 rounded-md">
-            กรุณาเลือกประเภทกระดาษและระบุขนาดงานเพื่อดูการจัดวาง
-          </div>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="space-y-2 p-4 bg-gray-50 rounded-lg border">
+          <h3 className="font-medium flex items-center gap-2">
+            <Ruler className="h-4 w-4" />
+            ข้อมูลขนาด
+          </h3>
+          {!hasPaperDimensions && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertTitle>กรุณาเลือกประเภทกระดาษ</AlertTitle>
+              <AlertDescription>
+                เลือกประเภทและแกรมกระดาษก่อนเพื่อดูขนาดกระดาษ
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {!hasJobDimensions && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertTitle>กรุณาระบุขนาดงาน</AlertTitle>
+              <AlertDescription>
+                ใส่ขนาดกว้างและยาวของงานที่ต้องการพิมพ์
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {hasPaperDimensions && (
+            <div className="text-sm space-y-1">
+              <p><span className="font-medium">ขนาดกระดาษ:</span> {paperSize.width} × {paperSize.height} นิ้ว</p>
+              <Badge variant="outline" className="bg-blue-50">
+                {paperSize.width * paperSize.height} ตารางนิ้ว
+              </Badge>
+            </div>
+          )}
+          
+          {hasJobDimensions && (
+            <div className="text-sm space-y-1 mt-3">
+              <p><span className="font-medium">ขนาดงาน:</span> {width} × {height} {sizeUnit}</p>
+              <p className="text-xs text-gray-500">
+                ({(parseFloat(width) / (sizeUnit === "cm" ? 2.54 : 1)).toFixed(2)} × {(parseFloat(height) / (sizeUnit === "cm" ? 2.54 : 1)).toFixed(2)} นิ้ว)
+              </p>
+            </div>
+          )}
+          
+          {allDimensionsProvided && (
+            <div className="mt-4">
+              <Button 
+                onClick={handleForceCalculation}
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                <RefreshCcw className="h-4 w-4" />
+                คำนวณการจัดวางใหม่
+              </Button>
+            </div>
+          )}
+        </div>
+        
+        <div className="space-y-2 p-4 bg-gray-50 rounded-lg border">
+          <h3 className="font-medium flex items-center gap-2">
+            <Info className="h-4 w-4" />
+            สถานะการจัดวาง
+          </h3>
+          
+          {allDimensionsProvided && (
+            <>
+              <p className="text-lg font-bold">
+                {printPerSheet > 0 ? `${printPerSheet} ชิ้นต่อแผ่น` : "รอการคำนวณ..."}
+              </p>
+              
+              {printPerSheet > 0 ? (
+                <Alert className="mt-3 bg-green-50 text-green-700 border-green-200">
+                  <AlertTitle>เรียบร้อย!</AlertTitle>
+                  <AlertDescription>การจัดวางงานที่ดีที่สุดคือ {printPerSheet} ชิ้นต่อแผ่น</AlertDescription>
+                </Alert>
+              ) : (
+                <Alert className="mt-3 bg-yellow-50 text-yellow-700 border-yellow-200">
+                  <AlertTitle>กำลังคำนวณ</AlertTitle>
+                  <AlertDescription>หากไม่พบการจัดวางที่เหมาะสม กรุณาตรวจสอบขนาดงานและกระดาษอีกครั้ง</AlertDescription>
+                </Alert>
+              )}
+            </>
+          )}
+          
+          {!allDimensionsProvided && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertTitle>ข้อมูลไม่ครบถ้วน</AlertTitle>
+              <AlertDescription>
+                กรุณาตรวจสอบว่าได้เลือกข้อมูลกระดาษและขนาดงานครบถ้วน
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
       </div>
       
       {paperSize && (

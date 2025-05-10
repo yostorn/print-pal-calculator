@@ -2,11 +2,12 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RotateCw, Eye } from "lucide-react";
+import { RotateCw, Eye, AlertCircle } from "lucide-react";
 import { calculateLayout, getLayoutDescription, getSuitablePaperSizes } from "@/utils/layoutCalculations";
 import LayoutCanvas from "./LayoutCanvas";
 import LayoutDetailsView from "./LayoutDetailsView";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface LayoutPreviewProps {
   paperWidth: number;  // Width of paper in inches
@@ -34,10 +35,41 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [suitableSizes, setSuitableSizes] = useState<any[]>([]);
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
+  const [calculationAttempted, setCalculationAttempted] = useState(false);
   
   const computeLayout = useCallback(() => {
-    console.log("Computing layout with:", { paperWidth, paperHeight, jobWidth, jobHeight });
-    const result = calculateLayout(paperWidth, paperHeight, jobWidth, jobHeight);
+    console.log("Computing layout with:", { 
+      paperWidth, 
+      paperHeight, 
+      jobWidth, 
+      jobHeight, 
+      calculationAttempted 
+    });
+    
+    // Set flag to indicate calculation was attempted
+    setCalculationAttempted(true);
+    
+    // Handle invalid inputs gracefully
+    if (!paperWidth || !paperHeight || !jobWidth || !jobHeight) {
+      console.warn("Invalid dimensions for layout calculation:", {
+        paperWidth, paperHeight, jobWidth, jobHeight
+      });
+      setPrintPerSheet(0);
+      setWastePercentage(0);
+      
+      // Always notify parent even if calculation fails
+      onLayoutChange(0);
+      return { printPerSheet: 0, wastePercentage: 0 };
+    }
+
+    // Convert dimensions if needed (job dimensions are in cm)
+    const jobWidthInch = jobWidth / 2.54;
+    const jobHeightInch = jobHeight / 2.54;
+    
+    // Calculate layout using the utility function
+    const result = calculateLayout(paperWidth, paperHeight, jobWidthInch, jobHeightInch);
+    
+    console.log("Layout calculation result:", result);
     
     // Set state with calculation results
     setPrintPerSheet(result.printPerSheet);
@@ -67,7 +99,27 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   }, [paperSizes, jobWidth, jobHeight, onPaperSizeChange]);
   
   useEffect(() => {
-    console.log("LayoutPreview useEffect triggered with:", { paperWidth, paperHeight, jobWidth, jobHeight });
+    console.log("LayoutPreview useEffect triggered with:", { 
+      paperWidth, 
+      paperHeight, 
+      jobWidth, 
+      jobHeight 
+    });
+    
+    // Clear the calculation attempted flag when dimensions change
+    if (paperWidth !== prevPaperWidth || 
+        paperHeight !== prevPaperHeight || 
+        jobWidth !== prevJobWidth || 
+        jobHeight !== prevJobHeight) {
+      setCalculationAttempted(false);
+    }
+    
+    // Store current values for next comparison
+    const prevPaperWidth = paperWidth;
+    const prevPaperHeight = paperHeight;
+    const prevJobWidth = jobWidth;
+    const prevJobHeight = jobHeight;
+    
     if (paperWidth && paperHeight && jobWidth && jobHeight) {
       computeLayout();
     } else {
@@ -89,6 +141,15 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     const cols = Math.floor(paperWidth / effectiveJobWidth);
     const rows = Math.floor(paperHeight / effectiveJobHeight);
     const totalPrints = cols * rows;
+    
+    console.log("Manual rotation toggled:", {
+      rotation: !rotation, 
+      effectiveJobWidth, 
+      effectiveJobHeight, 
+      cols, 
+      rows, 
+      totalPrints
+    });
     
     setPrintPerSheet(totalPrints);
     onLayoutChange(totalPrints);
@@ -117,8 +178,17 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       }
     }
   };
+  
+  // Force a recalculation of the layout
+  const handleForceCalculation = () => {
+    if (paperWidth && paperHeight && jobWidth && jobHeight) {
+      console.log("Forcing layout recalculation");
+      computeLayout();
+    }
+  };
 
   const hasSufficientData = !!paperWidth && !!paperHeight && !!jobWidth && !!jobHeight;
+  const showError = calculationAttempted && !printPerSheet && hasSufficientData;
 
   return (
     <Card>
@@ -159,6 +229,23 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
           <p className="text-sm text-gray-700 mt-1">
             {getLayoutDescription(jobWidth, jobHeight, paperWidth, paperHeight, printPerSheet, rotation)}
           </p>
+
+          {showError && (
+            <Alert variant="destructive" className="mt-3">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <AlertDescription>
+                ไม่สามารถคำนวณการจัดวางได้ ขนาดงานอาจใหญ่เกินกว่าขนาดกระดาษ
+              </AlertDescription>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="mt-2 bg-white" 
+                onClick={handleForceCalculation}
+              >
+                ลองคำนวณใหม่
+              </Button>
+            </Alert>
+          )}
 
           {/* Paper Size Suggestions */}
           {suitableSizes.length > 0 && (

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -10,6 +11,7 @@ import {
   fetchPlateCosts,
   fetchCalculationSettings
 } from "@/services/supabaseService";
+import { calculateLayout } from "@/utils/layoutCalculations";
 
 export const usePrintCalculation = () => {
   const { toast } = useToast();
@@ -36,6 +38,7 @@ export const usePrintCalculation = () => {
   const [validationError, setValidationError] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [isLayoutDetailsOpen, setIsLayoutDetailsOpen] = useState(false);
+  const [bypassLayoutValidation, setBypassLayoutValidation] = useState(false);
 
   // Results
   const [results, setResults] = useState<any[]>([]);
@@ -77,31 +80,37 @@ export const usePrintCalculation = () => {
     }
   }, [settings]);
 
-  // Update this useEffect to show layout preview as soon as paper type is selected
+  // Update paper size selection when paper type changes
   useEffect(() => {
+    console.log("Paper type changed to:", paperType);
+    console.log("Available paper sizes:", paperSizes);
+    
     if (paperType && paperSizes && paperSizes.length > 0) {
       // Default to the first paper size
-      setSelectedPaperSize({
+      const newSelectedSize = {
         width: paperSizes[0].width,
         height: paperSizes[0].height
-      });
+      };
+      
+      console.log("Setting selected paper size to:", newSelectedSize);
+      setSelectedPaperSize(newSelectedSize);
       
       // Always show preview when paper size is available
       setShowPreview(true);
       
-      // Log for debugging
-      console.log("Selected paper type and size:", { 
-        paperType, 
-        paperSize: paperSizes[0],
-        width: paperSizes[0].width,
-        height: paperSizes[0].height
-      });
+      // Clear any validation errors related to paper selection
+      if (validationError && (
+        validationError.includes("กระดาษ") || 
+        validationError.includes("เลือกประเภท")
+      )) {
+        setValidationError("");
+      }
     } else {
+      console.log("No paper size available, clearing selected paper size");
       setSelectedPaperSize(null);
       setShowPreview(false);
-      console.log("Paper size not available:", { paperType, paperSizes });
     }
-  }, [paperType, paperSizes]);
+  }, [paperType, paperSizes, validationError]);
 
   // Add separate effect for updating layout preview when dimensions change
   useEffect(() => {
@@ -112,17 +121,58 @@ export const usePrintCalculation = () => {
         paperSize: selectedPaperSize,
         printPerSheet
       });
+      
+      // Show preview when we have dimensions
       setShowPreview(true);
       
       // Clear validation errors if dimensions are provided
-      if (validationError && (validationError.includes("ขนาดงาน") || validationError.includes("กรุณาระบุขนาด"))) {
+      if (validationError && (
+        validationError.includes("ขนาดงาน") || 
+        validationError.includes("กรุณาระบุขนาด")
+      )) {
         setValidationError("");
       }
+      
+      // Calculate layout automatically when dimensions change
+      const jobWidthValue = parseFloat(width);
+      const jobHeightValue = parseFloat(height);
+      
+      if (jobWidthValue > 0 && jobHeightValue > 0 && selectedPaperSize) {
+        console.log("Auto-calculating layout with:", {
+          paperWidth: selectedPaperSize.width,
+          paperHeight: selectedPaperSize.height,
+          jobWidth: jobWidthValue,
+          jobHeight: jobHeightValue,
+          unit: sizeUnit
+        });
+        
+        // Convert to inches if needed
+        const jobWidthInch = sizeUnit === "cm" ? jobWidthValue / 2.54 : jobWidthValue;
+        const jobHeightInch = sizeUnit === "cm" ? jobHeightValue / 2.54 : jobHeightValue;
+        
+        const result = calculateLayout(
+          selectedPaperSize.width, 
+          selectedPaperSize.height, 
+          jobWidthInch, 
+          jobHeightInch
+        );
+        
+        console.log("Auto-calculated layout result:", result);
+        setPrintPerSheet(result.printPerSheet);
+        
+        // If layout can be calculated, clear related validation errors
+        if (result.printPerSheet > 0 && validationError && (
+          validationError.includes("การจัดวาง") || 
+          validationError.includes("วางงาน")
+        )) {
+          setValidationError("");
+        }
+      }
     }
-  }, [width, height, selectedPaperSize, validationError]);
+  }, [width, height, selectedPaperSize, sizeUnit, validationError]);
 
   // Handle layout change from the preview component
-  const handleLayoutChange = (perSheet: number) => {
+  const handleLayoutChange = useCallback((perSheet: number) => {
     console.log("Layout changed, printPerSheet:", perSheet);
     setPrintPerSheet(perSheet);
     
@@ -132,10 +182,9 @@ export const usePrintCalculation = () => {
         setValidationError("");
       }
     }
-  };
+  }, [validationError]);
 
   const handleOpenLayoutDetails = () => {
-    // Instead of showing validation errors, just open the dialog and let the user see what's missing
     console.log("Opening layout details with current state:", {
       paperType,
       width,
@@ -144,11 +193,9 @@ export const usePrintCalculation = () => {
       printPerSheet
     });
     
+    // Bypass layout validation when user opens layout details
+    setBypassLayoutValidation(true);
     setIsLayoutDetailsOpen(true);
-  };
-
-  const handleCloseLayoutDetails = () => {
-    setIsLayoutDetailsOpen(false);
   };
 
   // Add quantity field
@@ -247,7 +294,7 @@ export const usePrintCalculation = () => {
     return plateCostsHardcoded[plateType as keyof typeof plateCostsHardcoded] || 0;
   };
 
-  // Validate the form before calculation
+  // Improved validation with better error messages and logging
   const validateForm = () => {
     console.log("Validating form with:", {
       paperType,
@@ -259,9 +306,13 @@ export const usePrintCalculation = () => {
       printPerSheet,
       quantities: quantities[0],
       paperSizes: !!paperSizes,
-      selectedPaperSize
+      selectedPaperSize,
+      bypassLayoutValidation
     });
     
+    // Split validation into sections for better error messages
+    
+    // 1. Validate paper selection
     if (!paperType) {
       setValidationError("กรุณาเลือกประเภทกระดาษ");
       return false;
@@ -274,173 +325,236 @@ export const usePrintCalculation = () => {
       setValidationError("กรุณาเลือกซัพพลายเออร์");
       return false;
     }
-    if (!width || !height) {
-      setValidationError("กรุณาระบุขนาดงาน");
+    
+    // 2. Validate job dimensions
+    if (!width || parseFloat(width) <= 0) {
+      setValidationError("กรุณาระบุความกว้างของงาน");
       return false;
     }
+    if (!height || parseFloat(height) <= 0) {
+      setValidationError("กรุณาระบุความยาวของงาน");
+      return false;
+    }
+    
+    // 3. Validate other job details
     if (!colors) {
       setValidationError("กรุณาระบุจำนวนสี");
       return false;
     }
     
-    // Check printPerSheet with better error message
-    if (printPerSheet <= 0) {
+    // 4. Validate quantity
+    if (!quantities[0] || parseInt(quantities[0]) <= 0) {
+      setValidationError("กรุณาระบุปริมาณที่ต้องการคำนวณ");
+      return false;
+    }
+    
+    // 5. Validate layout calculation
+    if (printPerSheet <= 0 && !bypassLayoutValidation) {
+      console.log("Layout validation failed. printPerSheet:", printPerSheet);
+      
       // Try to analyze why it might be zero
       if (!selectedPaperSize) {
         setValidationError("กรุณาเลือกประเภทกระดาษ และขนาดกระดาษ");
       } else {
-        setValidationError("ไม่สามารถคำนวณการจัดวางได้ กรุณาตรวจสอบขนาดงานและกระดาษ");
+        // More helpful error message about layout issues
+        const jobWidthInch = sizeUnit === "cm" ? parseFloat(width) / 2.54 : parseFloat(width);
+        const jobHeightInch = sizeUnit === "cm" ? parseFloat(height) / 2.54 : parseFloat(height);
+        
+        if (jobWidthInch > selectedPaperSize.width || jobHeightInch > selectedPaperSize.height) {
+          setValidationError("ขนาดงานใหญ่เกินกระดาษ กรุณาเลือกขนาดกระดาษที่ใหญ่กว่า หรือลดขนาดงาน");
+        } else {
+          setValidationError("ไม่สามารถคำนวณการจัดวางได้ กรุณาตรวจสอบขนาดงานและกระดาษ");
+        }
       }
       
       // Force layout calculation if we have all the required dimensions
       if (selectedPaperSize && width && height) {
-        console.log("Forcing layout calculation with:", {
-          paperWidth: selectedPaperSize.width,
-          paperHeight: selectedPaperSize.height,
-          jobWidth: parseFloat(width),
-          jobHeight: parseFloat(height)
-        });
-        
-        // Instead of validation error, open layout details
+        console.log("Opening layout details to help resolve layout issues");
         setIsLayoutDetailsOpen(true);
       }
       
       return false;
     }
     
-    if (!quantities[0]) {
-      setValidationError("กรุณาระบุปริมาณที่ต้องการคำนวณ");
-      return false;
-    }
-
+    // All validations passed
     setValidationError("");
     return true;
   };
 
-  // Show layout preview when all required fields are filled
-  useEffect(() => {
-    if (paperType && width && height && selectedPaperSize) {
-      console.log("All required fields filled, showing preview");
-      setShowPreview(true);
-    }
-  }, [paperType, width, height, selectedPaperSize]);
-
-  // Calculate results
+  // Calculate results with better error handling
   const calculate = async () => {
     console.log("Starting calculation with values:", {
       paperType, paperGrammage, supplier, width, height, printPerSheet, quantities
     });
 
-    if (!validateForm()) {
+    try {
+      // Turn off bypass flag for normal validation
+      setBypassLayoutValidation(false);
+      
+      if (!validateForm()) {
+        toast({
+          title: "ข้อมูลไม่ครบถ้วน",
+          description: validationError || "กรุณาระบุข้อมูลให้ครบถ้วน",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const newResults = [];
+      const newBreakdowns = [];
+
+      for (const quantity of quantities) {
+        if (!quantity) continue;
+        
+        const qtyNum = parseInt(quantity);
+        
+        // Get paper price 
+        const paperPricePerKg = await getPaperPrice(paperType, paperGrammage, supplier);
+        console.log("Paper price per kg:", paperPricePerKg);
+        
+        // Calculate sheets needed
+        const wastageNum = parseInt(wastage) || 0;
+        const sheetsNeeded = Math.ceil(qtyNum / printPerSheet);
+        const totalSheets = sheetsNeeded + wastageNum;
+        console.log("Total sheets needed:", totalSheets, "(", sheetsNeeded, "sheets + ", wastageNum, "wastage)");
+        
+        // Determine plate type based on paper size
+        const plateType = selectedPaperSize && 
+          (selectedPaperSize.width > 24 || selectedPaperSize.height > 35) 
+          ? "ตัด 2" 
+          : "ตัด 4";
+        
+        // Calculate costs
+        const plateCost = getPlateCost(plateType) * parseInt(colors);
+        console.log("Plate cost:", plateCost);
+        
+        // Calculate paper weight and cost
+        if (!selectedPaperSize) {
+          throw new Error("ไม่มีข้อมูลขนาดกระดาษ");
+        }
+        
+        const paperAreaSqM = (selectedPaperSize.width * selectedPaperSize.height) / (39.37 * 39.37); // Convert square inches to square meters
+        const paperWeightPerSheet = paperAreaSqM * (parseInt(paperGrammage) / 1000); // Weight in kg
+        const sheetCost = paperWeightPerSheet * paperPricePerKg;
+        const paperCost = totalSheets * sheetCost;
+        console.log("Paper cost:", paperCost);
+        
+        // Calculate coating cost if applicable
+        const hasCoating = selectedCoating !== "none";
+        const coatingCostTotal = hasCoating ? totalSheets * parseFloat(coatingCost || "0") : 0;
+        
+        // Calculate ink cost (simplified estimation)
+        const inkCostPerSheet = parseInt(colors) * 0.5; // Simplified - 0.5 baht per color per sheet
+        const inkCost = totalSheets * inkCostPerSheet;
+        
+        // Calculate die-cut cost if applicable
+        const dieCutCostTotal = hasDieCut ? parseFloat(dieCutCost || "0") : 0;
+        
+        // Calculate shipping and packaging costs
+        const shippingCostTotal = parseFloat(shippingCost || "0");
+        const packagingCostTotal = parseFloat(packagingCost || "0");
+        
+        // Calculate total cost before profit
+        const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + dieCutCostTotal + shippingCostTotal + packagingCostTotal;
+        
+        // Calculate profit margin
+        const profitMarginPercent = parseFloat(profitMargin || "0") / 100;
+        const profit = baseCost * profitMarginPercent;
+        
+        // Total cost and per unit cost
+        const totalCost = baseCost + profit;
+        const unitCost = totalCost / qtyNum;
+        
+        newResults.push({
+          totalCost,
+          unitCost,
+          printPerSheet,
+          sheets: totalSheets,
+          paperSize: selectedPaperSize ? `${selectedPaperSize.width}×${selectedPaperSize.height} นิ้ว` : '',
+        });
+        
+        newBreakdowns.push({
+          plateType,
+          plateCost,
+          paperCost,
+          inkCost,
+          basePlateCost: getPlateCost(plateType),
+          totalSheets,
+          sheetCost,
+          colorNumber: parseInt(colors),
+          hasCoating,
+          coatingCost: coatingCostTotal,
+          coatingType: selectedCoating !== "none" ? selectedCoating : "",
+          hasDieCut,
+          dieCutCost: dieCutCostTotal,
+          shippingCost: shippingCostTotal,
+          packagingCost: packagingCostTotal,
+          profitMargin: profitMarginPercent,
+          profit: profit,
+          baseCost,
+          wastage: wastageNum
+        });
+      }
+      
+      setResults(newResults);
+      setBreakdowns(newBreakdowns);
+      
       toast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: validationError || "กรุณาระบุข้อมูลให้ครบถ้วน",
+        title: "คำนวณเสร็จสิ้น",
+        description: "ราคาถูกคำนวณเรียบร้อยแล้ว"
+      });
+      
+    } catch (error) {
+      console.error("Error during calculation:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: error instanceof Error ? error.message : "ไม่สามารถคำนวณราคาได้",
         variant: "destructive"
       });
-      return;
     }
+  };
 
-    const newResults = [];
-    const newBreakdowns = [];
-
-    for (const quantity of quantities) {
-      if (!quantity) continue;
-      
-      const qtyNum = parseInt(quantity);
-      
-      // Get paper price 
-      const paperPricePerKg = await getPaperPrice(paperType, paperGrammage, supplier);
-      console.log("Paper price per kg:", paperPricePerKg);
-      
-      // Calculate sheets needed
-      const wastageNum = parseInt(wastage) || 0;
-      const sheetsNeeded = Math.ceil(qtyNum / printPerSheet);
-      const totalSheets = sheetsNeeded + wastageNum;
-      console.log("Total sheets needed:", totalSheets, "(", sheetsNeeded, "sheets + ", wastageNum, "wastage)");
-      
-      // Determine plate type based on paper size
-      const plateType = selectedPaperSize && 
-        (selectedPaperSize.width > 24 || selectedPaperSize.height > 35) 
-        ? "ตัด 2" 
-        : "ตัด 4";
-      
-      // Calculate costs
-      const plateCost = getPlateCost(plateType) * parseInt(colors);
-      console.log("Plate cost:", plateCost);
-      
-      // Calculate paper weight and cost
-      if (!selectedPaperSize) continue;
-      
-      const paperAreaSqM = (selectedPaperSize.width * selectedPaperSize.height) / (39.37 * 39.37); // Convert square inches to square meters
-      const paperWeightPerSheet = paperAreaSqM * (parseInt(paperGrammage) / 1000); // Weight in kg
-      const sheetCost = paperWeightPerSheet * paperPricePerKg;
-      const paperCost = totalSheets * sheetCost;
-      console.log("Paper cost:", paperCost);
-      
-      // Calculate coating cost if applicable
-      const hasCoating = selectedCoating !== "none";
-      const coatingCostTotal = hasCoating ? totalSheets * parseFloat(coatingCost || "0") : 0;
-      
-      // Calculate ink cost (simplified estimation)
-      const inkCostPerSheet = parseInt(colors) * 0.5; // Simplified - 0.5 baht per color per sheet
-      const inkCost = totalSheets * inkCostPerSheet;
-      
-      // Calculate die-cut cost if applicable
-      const dieCutCostTotal = hasDieCut ? parseFloat(dieCutCost || "0") : 0;
-      
-      // Calculate shipping and packaging costs
-      const shippingCostTotal = parseFloat(shippingCost || "0");
-      const packagingCostTotal = parseFloat(packagingCost || "0");
-      
-      // Calculate total cost before profit
-      const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + dieCutCostTotal + shippingCostTotal + packagingCostTotal;
-      
-      // Calculate profit margin
-      const profitMarginPercent = parseFloat(profitMargin || "0") / 100;
-      const profit = baseCost * profitMarginPercent;
-      
-      // Total cost and per unit cost
-      const totalCost = baseCost + profit;
-      const unitCost = totalCost / qtyNum;
-      
-      newResults.push({
-        totalCost,
-        unitCost,
-        printPerSheet,
-        sheets: totalSheets,
-        paperSize: selectedPaperSize ? `${selectedPaperSize.width}×${selectedPaperSize.height} นิ้ว` : '',
-      });
-      
-      newBreakdowns.push({
-        plateType,
-        plateCost,
-        paperCost,
-        inkCost,
-        basePlateCost: getPlateCost(plateType),
-        totalSheets,
-        sheetCost,
-        colorNumber: parseInt(colors),
-        hasCoating,
-        coatingCost: coatingCostTotal,
-        coatingType: selectedCoating !== "none" ? selectedCoating : "",
-        hasDieCut,
-        dieCutCost: dieCutCostTotal,
-        shippingCost: shippingCostTotal,
-        packagingCost: packagingCostTotal,
-        profitMargin: profitMarginPercent,
-        profit: profit,
-        baseCost,
-        wastage: wastageNum
-      });
-    }
+  // Helper function to force layout calculation
+  const forceLayoutCalculation = () => {
+    if (!selectedPaperSize || !width || !height) return;
     
-    setResults(newResults);
-    setBreakdowns(newBreakdowns);
+    console.log("Forcing layout calculation");
     
-    toast({
-      title: "คำนวณเสร็จสิ้น",
-      description: "ราคาถูกคำนวณเรียบร้อยแล้ว"
+    // Convert to inches if needed
+    const jobWidthValue = parseFloat(width);
+    const jobHeightValue = parseFloat(height);
+    const jobWidthInch = sizeUnit === "cm" ? jobWidthValue / 2.54 : jobWidthValue;
+    const jobHeightInch = sizeUnit === "cm" ? jobHeightValue / 2.54 : jobHeightValue;
+    
+    // Try both orientations
+    const normalLayout = calculateLayout(
+      selectedPaperSize.width, 
+      selectedPaperSize.height, 
+      jobWidthInch, 
+      jobHeightInch
+    );
+    
+    const rotatedLayout = calculateLayout(
+      selectedPaperSize.width, 
+      selectedPaperSize.height, 
+      jobHeightInch, 
+      jobWidthInch
+    );
+    
+    console.log("Force calculation results:", { 
+      normal: normalLayout, 
+      rotated: rotatedLayout 
     });
+    
+    // Use the better layout
+    if (normalLayout.printPerSheet >= rotatedLayout.printPerSheet) {
+      setPrintPerSheet(normalLayout.printPerSheet);
+    } else {
+      setPrintPerSheet(rotatedLayout.printPerSheet);
+    }
+    
+    // Enable bypass for validation to allow calculation even with small printPerSheet
+    setBypassLayoutValidation(true);
   };
 
   return {
@@ -466,6 +580,7 @@ export const usePrintCalculation = () => {
     validationError, setValidationError,
     showPreview, setShowPreview,
     isLayoutDetailsOpen, setIsLayoutDetailsOpen,
+    bypassLayoutValidation, setBypassLayoutValidation,
     
     // Results
     results, setResults,
@@ -482,8 +597,8 @@ export const usePrintCalculation = () => {
     // Functions
     handleLayoutChange,
     handleOpenLayoutDetails,
-    handleCloseLayoutDetails,
     calculate,
-    validateForm
+    validateForm,
+    forceLayoutCalculation
   };
 };
