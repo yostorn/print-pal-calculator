@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -89,19 +88,34 @@ export const usePrintCalculation = () => {
       
       // Always show preview when paper size is available
       setShowPreview(true);
+      
+      // Log for debugging
+      console.log("Selected paper type and size:", { 
+        paperType, 
+        paperSize: paperSizes[0],
+        width: paperSizes[0].width,
+        height: paperSizes[0].height
+      });
     } else {
       setSelectedPaperSize(null);
       setShowPreview(false);
+      console.log("Paper size not available:", { paperType, paperSizes });
     }
   }, [paperType, paperSizes]);
 
   // Add separate effect for updating layout preview when dimensions change
   useEffect(() => {
     if (width && height && selectedPaperSize) {
-      console.log("Dimensions changed, showing preview with:", { width, height, paperSize: selectedPaperSize });
+      console.log("Dimensions changed, showing preview with:", { 
+        width, 
+        height, 
+        paperSize: selectedPaperSize,
+        printPerSheet
+      });
       setShowPreview(true);
+      
       // Clear validation errors if dimensions are provided
-      if (validationError.includes("ขนาดงาน")) {
+      if (validationError && (validationError.includes("ขนาดงาน") || validationError.includes("กรุณาระบุขนาด"))) {
         setValidationError("");
       }
     }
@@ -111,30 +125,24 @@ export const usePrintCalculation = () => {
   const handleLayoutChange = (perSheet: number) => {
     console.log("Layout changed, printPerSheet:", perSheet);
     setPrintPerSheet(perSheet);
+    
+    // Clear validation errors related to layout when we get a valid count
     if (perSheet > 0) {
-      // Clear all validation errors related to layout
-      if (validationError.includes("การจัดวาง")) {
+      if (validationError && (validationError.includes("การจัดวาง") || validationError.includes("วางงาน"))) {
         setValidationError("");
       }
     }
   };
 
   const handleOpenLayoutDetails = () => {
-    // Clear validation errors when opening layout details
-    if (validationError.includes("การจัดวาง") || validationError.includes("รายละเอียด")) {
-      setValidationError("");
-    }
-    
-    // Check if we have the necessary data to show a layout
-    if (!paperType) {
-      setValidationError("กรุณาเลือกประเภทกระดาษก่อนดูรายละเอียดการจัดวางงาน");
-      return;
-    }
-    
-    if (!width || !height) {
-      setValidationError("กรุณาระบุขนาดงานก่อนดูรายละเอียดการจัดวางงาน");
-      return;
-    }
+    // Instead of showing validation errors, just open the dialog and let the user see what's missing
+    console.log("Opening layout details with current state:", {
+      paperType,
+      width,
+      height,
+      selectedPaperSize,
+      printPerSheet
+    });
     
     setIsLayoutDetailsOpen(true);
   };
@@ -241,6 +249,19 @@ export const usePrintCalculation = () => {
 
   // Validate the form before calculation
   const validateForm = () => {
+    console.log("Validating form with:", {
+      paperType,
+      paperGrammage,
+      supplier,
+      width,
+      height,
+      colors,
+      printPerSheet,
+      quantities: quantities[0],
+      paperSizes: !!paperSizes,
+      selectedPaperSize
+    });
+    
     if (!paperType) {
       setValidationError("กรุณาเลือกประเภทกระดาษ");
       return false;
@@ -261,11 +282,32 @@ export const usePrintCalculation = () => {
       setValidationError("กรุณาระบุจำนวนสี");
       return false;
     }
+    
+    // Check printPerSheet with better error message
     if (printPerSheet <= 0) {
-      setValidationError("กรุณาตรวจสอบการจัดวางงาน (คลิกที่ปุ่มดูรายละเอียดการจัดวางงาน)");
-      handleOpenLayoutDetails(); // Automatically open layout details
+      // Try to analyze why it might be zero
+      if (!selectedPaperSize) {
+        setValidationError("กรุณาเลือกประเภทกระดาษ และขนาดกระดาษ");
+      } else {
+        setValidationError("ไม่สามารถคำนวณการจัดวางได้ กรุณาตรวจสอบขนาดงานและกระดาษ");
+      }
+      
+      // Force layout calculation if we have all the required dimensions
+      if (selectedPaperSize && width && height) {
+        console.log("Forcing layout calculation with:", {
+          paperWidth: selectedPaperSize.width,
+          paperHeight: selectedPaperSize.height,
+          jobWidth: parseFloat(width),
+          jobHeight: parseFloat(height)
+        });
+        
+        // Instead of validation error, open layout details
+        setIsLayoutDetailsOpen(true);
+      }
+      
       return false;
     }
+    
     if (!quantities[0]) {
       setValidationError("กรุณาระบุปริมาณที่ต้องการคำนวณ");
       return false;
@@ -278,6 +320,7 @@ export const usePrintCalculation = () => {
   // Show layout preview when all required fields are filled
   useEffect(() => {
     if (paperType && width && height && selectedPaperSize) {
+      console.log("All required fields filled, showing preview");
       setShowPreview(true);
     }
   }, [paperType, width, height, selectedPaperSize]);

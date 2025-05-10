@@ -17,6 +17,13 @@ const QuantityInputs: React.FC<QuantityInputsProps> = ({
   onRemoveQuantity,
   onUpdateQuantity,
 }) => {
+  // Ensure valid quantity inputs
+  const handleQuantityChange = (index: number, value: string) => {
+    // Remove any non-numeric characters
+    const cleanValue = value.replace(/[^0-9]/g, '');
+    onUpdateQuantity(index, cleanValue);
+  };
+
   return (
     <div className="space-y-3">
       {quantities.map((qty, index) => (
@@ -26,7 +33,7 @@ const QuantityInputs: React.FC<QuantityInputsProps> = ({
             type="number"
             min="1"
             value={qty}
-            onChange={(e) => onUpdateQuantity(index, e.target.value)}
+            onChange={(e) => handleQuantityChange(index, e.target.value)}
           />
           {quantities.length > 1 && (
             <Button

@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import LayoutPreview from "../layout-preview/LayoutPreview";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface LayoutDetailsDialogProps {
   isOpen: boolean;
@@ -28,9 +29,37 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
 }) => {
   const isMobile = useIsMobile();
 
+  // Validate that we have all required dimensions
+  const hasPaperDimensions = paperSize && paperSize.width > 0 && paperSize.height > 0;
+  const hasJobDimensions = parseFloat(width || "0") > 0 && parseFloat(height || "0") > 0;
+  const allDimensionsProvided = hasPaperDimensions && hasJobDimensions;
+  
+  // Debug information to help troubleshoot validation issues
+  console.log("LayoutDetailsDialog rendering with:", { 
+    paperSize, 
+    width, 
+    height, 
+    sizeUnit,
+    printPerSheet,
+    hasPaperDimensions,
+    hasJobDimensions,
+    allDimensionsProvided
+  });
+
   // Component to render the layout details dialog/sheet content
   const LayoutDetailsContent = () => (
     <div className="space-y-4">
+      {!allDimensionsProvided && (
+        <Alert variant="destructive">
+          <AlertTitle>กรุณากรอกข้อมูลให้ครบ</AlertTitle>
+          <AlertDescription>
+            {!hasPaperDimensions && "กรุณาเลือกประเภทกระดาษ"}
+            {!hasPaperDimensions && !hasJobDimensions && " และ "}
+            {!hasJobDimensions && "กรุณาระบุขนาดงาน"}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-2">
         {paperSize ? (
           <>
