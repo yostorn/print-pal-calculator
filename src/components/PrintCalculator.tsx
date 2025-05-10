@@ -12,6 +12,7 @@ import SizeInputs from "./SizeInputs";
 import ResultsTable from "./ResultsTable";
 import BreakdownDetails from "./BreakdownDetails";
 import LayoutPreview from "./layout-preview/LayoutPreview";
+import CoatingOptions from "./CoatingOptions";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -40,7 +41,7 @@ const PrintCalculator = () => {
   const [height, setHeight] = useState("");
   const [sizeUnit, setSizeUnit] = useState<"cm" | "inch">("cm");
   const [colors, setColors] = useState("4");
-  const [hasCoating, setHasCoating] = useState(false);
+  const [selectedCoating, setSelectedCoating] = useState("none");
   const [coatingCost, setCoatingCost] = useState("0");
   const [quantities, setQuantities] = useState<string[]>(["1000"]);
   const [wastage, setWastage] = useState("250");
@@ -353,6 +354,7 @@ const PrintCalculator = () => {
       console.log("Paper cost:", paperCost);
       
       // Calculate coating cost if applicable
+      const hasCoating = selectedCoating !== "none";
       const coatingCostTotal = hasCoating ? totalSheets * parseFloat(coatingCost || "0") : 0;
       
       // Calculate ink cost (simplified estimation)
@@ -396,6 +398,7 @@ const PrintCalculator = () => {
         colorNumber: parseInt(colors),
         hasCoating,
         coatingCost: coatingCostTotal,
+        coatingType: selectedCoating !== "none" ? selectedCoating : "",
         hasDieCut,
         dieCutCost: dieCutCostTotal,
         shippingCost: shippingCostTotal,
@@ -530,45 +533,13 @@ const PrintCalculator = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center gap-1">
-                <Label htmlFor="hasCoating">มีตีพื้นหรือไม่</Label>
-                <div className="tooltip">
-                  <Info className="h-4 w-4 text-gray-400" />
-                  <span className="tooltiptext">เลือกหากต้องการตีพื้น (เคลือบผิว)</span>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="hasCoating" 
-                  checked={hasCoating} 
-                  onCheckedChange={setHasCoating}
-                />
-                <Label htmlFor="hasCoating">
-                  {hasCoating ? "มี" : "ไม่มี"}
-                </Label>
-              </div>
-            </div>
-            
-            {hasCoating && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="coatingCost">ค่าพิมพ์เพิ่มตีพื้น (บาท/แผ่น)</Label>
-                  <div className="tooltip">
-                    <Info className="h-4 w-4 text-gray-400" />
-                    <span className="tooltiptext">ระบุค่าพิมพ์เพิ่มสำหรับตีพื้น คิดเป็นบาทต่อแผ่น</span>
-                  </div>
-                </div>
-                <Input 
-                  id="coatingCost" 
-                  type="number" 
-                  min="0"
-                  step="0.01"
-                  value={coatingCost} 
-                  onChange={(e) => setCoatingCost(e.target.value)}
-                />
-              </div>
-            )}
+            {/* Replace hasCoating switch and coatingCost input with CoatingOptions component */}
+            <CoatingOptions 
+              selectedCoating={selectedCoating}
+              coatingCost={coatingCost}
+              onCoatingChange={setSelectedCoating}
+              onCoatingCostChange={setCoatingCost}
+            />
             
             <div className="space-y-2">
               <div className="flex items-center gap-1">

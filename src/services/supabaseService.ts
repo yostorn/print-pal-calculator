@@ -95,26 +95,3 @@ export const fetchCalculationSettings = async () => {
   
   return settings;
 };
-
-// Coating Options
-export const fetchCoatingOptions = async () => {
-  const { data, error } = await supabase
-    .from('coating_options')
-    .select('*')
-    .order('name');
-  
-  if (error) throw error;
-  return data;
-};
-
-// Get coating price
-export const fetchCoatingPrice = async (coatingId: string) => {
-  const { data, error } = await supabase
-    .from('coating_prices')
-    .select('*')
-    .eq('coating_id', coatingId)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') throw error;
-  return data;
-};

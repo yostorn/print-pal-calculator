@@ -18,6 +18,18 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ breakdowns, selecte
 
   const breakdown = breakdowns[selectedQuantityIndex];
 
+  // Map coating type IDs to Thai names for display
+  const getCoatingName = (coatingType: string) => {
+    const coatingNames: Record<string, string> = {
+      "none": "ไม่มีการเคลือบ",
+      "laminate-glossy": "Laminate เงา",
+      "laminate-matte": "Laminate ด้าน",
+      "uv-coating": "เคลือบ UV",
+      "spot-uv": "Spot UV"
+    };
+    return coatingNames[coatingType] || coatingType;
+  };
+
   return (
     <Card className="mt-4">
       <CardHeader className="pb-3">
@@ -51,10 +63,16 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ breakdowns, selecte
           </div>
           
           {breakdown.hasCoating && (
-            <div className="flex justify-between">
-              <dt className="font-medium">ค่าตีพื้น:</dt>
-              <dd>{formatCurrency(breakdown.coatingCost)}</dd>
-            </div>
+            <>
+              <div className="flex justify-between">
+                <dt className="font-medium">ประเภทการเคลือบ:</dt>
+                <dd>{getCoatingName(breakdown.coatingType || "none")}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="font-medium">ค่าเคลือบ:</dt>
+                <dd>{formatCurrency(breakdown.coatingCost)}</dd>
+              </div>
+            </>
           )}
           
           {breakdown.hasDieCut && (
