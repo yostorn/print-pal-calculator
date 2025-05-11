@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RotateCw, Eye, AlertCircle } from "lucide-react";
@@ -36,6 +36,14 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   const [suitableSizes, setSuitableSizes] = useState<any[]>([]);
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
   const [calculationAttempted, setCalculationAttempted] = useState(false);
+  
+  // Use refs to track previous values
+  const prevValuesRef = useRef({
+    paperWidth,
+    paperHeight,
+    jobWidth,
+    jobHeight
+  });
   
   const computeLayout = useCallback(() => {
     console.log("Computing layout with:", { 
@@ -80,7 +88,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     onLayoutChange(result.printPerSheet);
     
     return result;
-  }, [paperWidth, paperHeight, jobWidth, jobHeight, onLayoutChange]);
+  }, [paperWidth, paperHeight, jobWidth, jobHeight, onLayoutChange, calculationAttempted]);
   
   // Find suitable paper sizes for the job
   useEffect(() => {
@@ -106,6 +114,12 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       jobHeight 
     });
     
+    // Get previous values from ref
+    const { paperWidth: prevPaperWidth, 
+            paperHeight: prevPaperHeight, 
+            jobWidth: prevJobWidth, 
+            jobHeight: prevJobHeight } = prevValuesRef.current;
+    
     // Clear the calculation attempted flag when dimensions change
     if (paperWidth !== prevPaperWidth || 
         paperHeight !== prevPaperHeight || 
@@ -114,11 +128,13 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       setCalculationAttempted(false);
     }
     
-    // Store current values for next comparison
-    const prevPaperWidth = paperWidth;
-    const prevPaperHeight = paperHeight;
-    const prevJobWidth = jobWidth;
-    const prevJobHeight = jobHeight;
+    // Update ref with current values for next comparison
+    prevValuesRef.current = {
+      paperWidth,
+      paperHeight,
+      jobWidth,
+      jobHeight
+    };
     
     if (paperWidth && paperHeight && jobWidth && jobHeight) {
       computeLayout();
