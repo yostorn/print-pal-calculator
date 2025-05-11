@@ -100,6 +100,8 @@ const PrintCalculator = () => {
               sizeUnit={calc.sizeUnit}
               printPerSheet={calc.printPerSheet}
               onLayoutChange={calc.handleLayoutChange}
+              onPaperTypeChange={calc.setPaperType}
+              onPaperSizeChange={calc.setSelectedPaperSize}
             />
 
             <Button className="w-full" onClick={calc.calculate}>

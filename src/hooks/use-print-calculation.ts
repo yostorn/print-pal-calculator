@@ -175,6 +175,7 @@ export const usePrintCalculation = () => {
   const handleLayoutChange = useCallback((perSheet: number) => {
     console.log("Layout changed, printPerSheet:", perSheet);
     setPrintPerSheet(perSheet);
+    setBypassLayoutValidation(true);
     
     // Clear validation errors related to layout when we get a valid count
     if (perSheet > 0) {
@@ -348,7 +349,7 @@ export const usePrintCalculation = () => {
       return false;
     }
     
-    // 5. Validate layout calculation
+    // 5. Validate layout calculation - Modified to be more flexible
     if (printPerSheet <= 0 && !bypassLayoutValidation) {
       console.log("Layout validation failed. printPerSheet:", printPerSheet);
       
@@ -370,7 +371,7 @@ export const usePrintCalculation = () => {
       // Force layout calculation if we have all the required dimensions
       if (selectedPaperSize && width && height) {
         console.log("Opening layout details to help resolve layout issues");
-        setIsLayoutDetailsOpen(true);
+        handleOpenLayoutDetails();
       }
       
       return false;
@@ -388,8 +389,12 @@ export const usePrintCalculation = () => {
     });
 
     try {
-      // Turn off bypass flag for normal validation
-      setBypassLayoutValidation(false);
+      // Turn off bypass flag for normal validation only if printPerSheet is 0
+      if (printPerSheet > 0) {
+        setBypassLayoutValidation(true);
+      } else {
+        setBypassLayoutValidation(false);
+      }
       
       if (!validateForm()) {
         toast({
