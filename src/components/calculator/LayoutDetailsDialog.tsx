@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import LayoutPreview from "../layout-preview/LayoutPreview";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -192,6 +192,7 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
       <SheetContent>
         <SheetHeader>
           <SheetTitle>รายละเอียดการจัดวางงาน</SheetTitle>
+          <SheetDescription>คุณสามารถตรวจสอบรายละเอียดการจัดวางงานพิมพ์บนกระดาษ</SheetDescription>
         </SheetHeader>
         <div className="mt-6">
           <LayoutDetailsContent />
@@ -203,6 +204,7 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>รายละเอียดการจัดวางงาน</DialogTitle>
+          <DialogDescription>คุณสามารถตรวจสอบรายละเอียดการจัดวางงานพิมพ์บนกระดาษ</DialogDescription>
         </DialogHeader>
         <LayoutDetailsContent />
       </DialogContent>
