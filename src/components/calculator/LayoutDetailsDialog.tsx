@@ -41,6 +41,7 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
   
   // Local state for paper selection within this dialog
   const [selectedPaperType, setSelectedPaperType] = useState<string>("");
+  const [selectedSizeId, setSelectedSizeId] = useState<string>("");
   const [localPaperSize, setLocalPaperSize] = useState<{ width: number; height: number } | null>(paperSize);
 
   // Validate that we have all required dimensions
@@ -65,12 +66,19 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       setLocalPaperSize(paperSize);
+      
+      // If we don't have a paper size yet, make sure the user knows they need to select one
+      if (!paperSize || !paperSize.width || !paperSize.height) {
+        console.log("No paper size provided to dialog, user needs to select one");
+      }
     }
   }, [isOpen, paperSize]);
 
   // Handle paper type selection
   const handlePaperTypeChange = (value: string) => {
     setSelectedPaperType(value);
+    setSelectedSizeId(""); // Reset size selection when type changes
+    
     if (onPaperTypeChange) {
       onPaperTypeChange(value);
     }
@@ -78,6 +86,8 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
 
   // Handle paper size selection
   const handlePaperSizeChange = (sizeId: string) => {
+    setSelectedSizeId(sizeId);
+    
     const size = paperSizes?.find(s => s.id === sizeId);
     if (size) {
       const newPaperSize = {
@@ -109,6 +119,7 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
     hasJobDimensions,
     allDimensionsProvided,
     selectedPaperType,
+    selectedSizeId,
     paperSizes
   });
 
@@ -146,7 +157,7 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
   // Component to render the layout details dialog/sheet content
   const LayoutDetailsContent = () => (
     <div className="space-y-4">
-      {/* Paper Selection Section - New! */}
+      {/* Paper Selection Section */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
         <h3 className="font-medium text-blue-700 mb-2 flex items-center gap-2">
           <Info className="h-4 w-4" />
@@ -173,6 +184,7 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
           <div className="space-y-2">
             <label className="block text-sm">ขนาดกระดาษ</label>
             <Select 
+              value={selectedSizeId}
               onValueChange={handlePaperSizeChange}
               disabled={!selectedPaperType || !paperSizes || paperSizes.length === 0}
             >
@@ -189,6 +201,17 @@ const LayoutDetailsDialog: React.FC<LayoutDetailsDialogProps> = ({
             </Select>
           </div>
         </div>
+        
+        {localPaperSize && (
+          <Alert className="bg-green-50 border-green-200">
+            <AlertTitle className="text-green-800">
+              เลือกกระดาษเรียบร้อยแล้ว
+            </AlertTitle>
+            <AlertDescription className="text-green-700">
+              กระดาษขนาด {localPaperSize.width}" × {localPaperSize.height}" พร้อมสำหรับการคำนวณ
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

@@ -13,9 +13,34 @@ import CalculationSettings from "./calculator/CalculationSettings";
 import ResultsPreview from "./calculator/ResultsPreview";
 import LayoutDetailsDialog from "./calculator/LayoutDetailsDialog";
 import { usePrintCalculation } from "@/hooks/use-print-calculation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPaperSizes } from "@/services/supabaseService";
+import { Label } from "@/components/ui/label";
 
 const PrintCalculator = () => {
   const calc = usePrintCalculation();
+
+  // Fetch paper sizes based on selected paper type
+  const { data: paperSizes } = useQuery({
+    queryKey: ['paperSizes', calc.paperType],
+    queryFn: () => fetchPaperSizes(calc.paperType),
+    enabled: !!calc.paperType
+  });
+
+  // Handle paper size selection
+  const handlePaperSizeChange = (sizeId: string) => {
+    const selectedSize = paperSizes?.find(size => size.id === sizeId);
+    if (selectedSize) {
+      calc.setSelectedPaperSize({
+        width: selectedSize.width,
+        height: selectedSize.height
+      });
+      
+      // Force layout calculation with the new paper size
+      setTimeout(() => calc.forceLayoutCalculation(), 100);
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -45,6 +70,32 @@ const PrintCalculator = () => {
               colors={calc.colors}
               onColorsChange={calc.setColors}
             />
+
+            {/* Paper Size Selection - NEW! */}
+            {calc.paperType && (
+              <div className="rounded-md border p-4">
+                <Label htmlFor="paperSize" className="text-sm font-medium mb-2 block">
+                  ขนาดกระดาษ
+                </Label>
+                <Select onValueChange={handlePaperSizeChange}>
+                  <SelectTrigger id="paperSize" className="w-full">
+                    <SelectValue placeholder="เลือกขนาดกระดาษ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paperSizes?.map((size) => (
+                      <SelectItem key={size.id} value={size.id}>
+                        {size.name} ({size.width}" × {size.height}")
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {calc.selectedPaperSize && (
+                  <p className="mt-2 text-sm text-green-600">
+                    กระดาษขนาด {calc.selectedPaperSize.width}" × {calc.selectedPaperSize.height}"
+                  </p>
+                )}
+              </div>
+            )}
 
             <CoatingOptions
               selectedCoating={calc.selectedCoating}
