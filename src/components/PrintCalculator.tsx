@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
@@ -17,12 +17,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { fetchPaperSizes } from "@/services/supabaseService";
 import { Label } from "@/components/ui/label";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertCircle } from "lucide-react";
 
 const PrintCalculator = () => {
   const calc = usePrintCalculation();
 
   // Fetch paper sizes based on selected paper type
-  const { data: paperSizes } = useQuery({
+  const { data: paperSizes, isLoading: isLoadingPaperSizes, error: paperSizesError } = useQuery({
     queryKey: ['paperSizes', calc.paperType],
     queryFn: () => fetchPaperSizes(calc.paperType),
     enabled: !!calc.paperType
@@ -39,8 +41,22 @@ const PrintCalculator = () => {
       
       // Force layout calculation with the new paper size
       setTimeout(() => calc.forceLayoutCalculation(), 100);
+      
+      // Clear validation errors related to paper size
+      if (calc.validationError && 
+         (calc.validationError.includes("กระดาษ") || 
+          calc.validationError.includes("ขนาด"))) {
+        calc.setValidationError("");
+      }
     }
   };
+
+  // Show a warning if paper type is selected but no paper size is selected
+  useEffect(() => {
+    if (calc.paperType && !calc.selectedPaperSize && !isLoadingPaperSizes) {
+      console.log("Paper type selected but no paper size selected.");
+    }
+  }, [calc.paperType, calc.selectedPaperSize, isLoadingPaperSizes]);
 
   return (
     <Card className="w-full">
@@ -71,24 +87,52 @@ const PrintCalculator = () => {
               onColorsChange={calc.setColors}
             />
 
-            {/* Paper Size Selection - NEW! */}
+            {/* Paper Size Selection */}
             {calc.paperType && (
               <div className="rounded-md border p-4">
-                <Label htmlFor="paperSize" className="text-sm font-medium mb-2 block">
-                  ขนาดกระดาษ
-                </Label>
-                <Select onValueChange={handlePaperSizeChange}>
-                  <SelectTrigger id="paperSize" className="w-full">
-                    <SelectValue placeholder="เลือกขนาดกระดาษ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paperSizes?.map((size) => (
-                      <SelectItem key={size.id} value={size.id}>
-                        {size.name} ({size.width}" × {size.height}")
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex justify-between items-center mb-2">
+                  <Label htmlFor="paperSize" className="text-sm font-medium">
+                    ขนาดกระดาษ
+                  </Label>
+                  {!calc.selectedPaperSize && !isLoadingPaperSizes && (
+                    <span className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> กรุณาเลือกขนาดกระดาษ
+                    </span>
+                  )}
+                </div>
+                
+                {isLoadingPaperSizes ? (
+                  <div className="w-full h-10 bg-gray-100 animate-pulse rounded-md"></div>
+                ) : paperSizesError ? (
+                  <div className="text-sm text-red-500">ไม่สามารถโหลดขนาดกระดาษได้</div>
+                ) : (
+                  <Select 
+                    onValueChange={handlePaperSizeChange}
+                    value={paperSizes?.find(s => 
+                      calc.selectedPaperSize && 
+                      s.width === calc.selectedPaperSize.width && 
+                      s.height === calc.selectedPaperSize.height
+                    )?.id}
+                  >
+                    <SelectTrigger id="paperSize" className="w-full">
+                      <SelectValue placeholder="เลือกขนาดกระดาษ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paperSizes && paperSizes.length > 0 ? (
+                        paperSizes.map((size) => (
+                          <SelectItem key={size.id} value={size.id}>
+                            {size.name} ({size.width}" × {size.height}")
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-sizes" disabled>
+                          ไม่พบขนาดกระดาษ
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+                
                 {calc.selectedPaperSize && (
                   <p className="mt-2 text-sm text-green-600">
                     กระดาษขนาด {calc.selectedPaperSize.width}" × {calc.selectedPaperSize.height}"
@@ -132,7 +176,7 @@ const PrintCalculator = () => {
               onProfitMarginChange={calc.setProfitMargin}
             />
 
-            {/* Always show layout details button */}
+            {/* Layout details button */}
             <Button
               className="w-full mb-2"
               variant="outline"
@@ -155,7 +199,11 @@ const PrintCalculator = () => {
               onPaperSizeChange={calc.setSelectedPaperSize}
             />
 
-            <Button className="w-full" onClick={calc.calculate}>
+            <Button 
+              className="w-full" 
+              onClick={calc.calculate}
+              disabled={!calc.paperType || !calc.selectedPaperSize || !calc.width || !calc.height}
+            >
               คำนวณ
             </Button>
           </div>
