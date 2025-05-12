@@ -30,6 +30,10 @@ const PrintCalculator = () => {
     enabled: !!calc.paperType
   });
 
+  // Debug logs to track data flow
+  console.log("Paper type in PrintCalculator:", calc.paperType);
+  console.log("Paper sizes API response:", paperSizes);
+
   // Handle paper size selection
   const handlePaperSizeChange = (sizeId: string) => {
     const selectedSize = paperSizes?.find(size => size.id === sizeId);
@@ -104,7 +108,7 @@ const PrintCalculator = () => {
                 {isLoadingPaperSizes ? (
                   <div className="w-full h-10 bg-gray-100 animate-pulse rounded-md"></div>
                 ) : paperSizesError ? (
-                  <div className="text-sm text-red-500">ไม่สามารถโหลดขนาดกระดาษได้</div>
+                  <div className="text-sm text-red-500">ไม่สามารถโหลดขนาดกระดาษได้ ({paperSizesError.message})</div>
                 ) : (
                   <Select 
                     onValueChange={handlePaperSizeChange}

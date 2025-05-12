@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -52,11 +51,19 @@ export const usePrintCalculation = () => {
     queryFn: fetchPaperTypes
   });
 
+  // Debug logs to trace data flow
+  console.log("usePrintCalculation - paperType:", paperType);
+
   const { data: paperSizes } = useQuery({
     queryKey: ['paperSizes', paperType],
     queryFn: () => fetchPaperSizes(paperType),
     enabled: !!paperType
   });
+
+  // Log paper sizes fetched
+  useEffect(() => {
+    console.log("Paper sizes updated in hook:", paperSizes);
+  }, [paperSizes]);
 
   const { data: plateCosts } = useQuery({
     queryKey: ['plateCosts'],
@@ -106,9 +113,14 @@ export const usePrintCalculation = () => {
         setValidationError("");
       }
     } else {
-      console.log("No paper size available, clearing selected paper size");
-      setSelectedPaperSize(null);
-      setShowPreview(false);
+      // If we don't have paper sizes yet but have a paper type, don't clear the selected size
+      if (!paperSizes || paperSizes.length === 0) {
+        console.log("No paper sizes available yet for paper type:", paperType);
+      } else {
+        console.log("No paper size available, clearing selected paper size");
+        setSelectedPaperSize(null);
+        setShowPreview(false);
+      }
     }
   }, [paperType, paperSizes, validationError]);
 
@@ -319,7 +331,7 @@ export const usePrintCalculation = () => {
       return false;
     }
     if (!paperGrammage) {
-      setValidationError("กรุณาเลือกแกรมกระดาษ");
+      setValidationError("��รุณาเลือกแกรมกระดาษ");
       return false;
     }
     if (!supplier) {
@@ -513,7 +525,7 @@ export const usePrintCalculation = () => {
       console.error("Error during calculation:", error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: error instanceof Error ? error.message : "ไม่สามารถคำนวณราคาได้",
+        description: error instanceof Error ? error.message : "ไม่สา���ารถคำนวณราคาได้",
         variant: "destructive"
       });
     }

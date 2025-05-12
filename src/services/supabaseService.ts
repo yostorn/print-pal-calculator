@@ -3,17 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Paper Types
 export const fetchPaperTypes = async () => {
+  console.log("Fetching paper types from Supabase");
   const { data, error } = await supabase
     .from('paper_types')
     .select('*')
     .order('label');
   
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching paper types:", error);
+    throw error;
+  }
+  console.log("Paper types fetched:", data);
   return data;
 };
 
 // Paper Sizes
 export const fetchPaperSizes = async (paperTypeId?: string) => {
+  console.log("Fetching paper sizes with paperTypeId:", paperTypeId);
   let query = supabase
     .from('paper_sizes')
     .select('*')
@@ -24,12 +30,17 @@ export const fetchPaperSizes = async (paperTypeId?: string) => {
   }
   
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching paper sizes:", error);
+    throw error;
+  }
+  console.log("Paper sizes fetched:", data);
   return data;
 };
 
 // Paper Grammages
 export const fetchPaperGrammages = async (paperTypeId?: string) => {
+  console.log("Fetching grammages with paperTypeId:", paperTypeId);
   let query = supabase
     .from('paper_grammages')
     .select('*')
@@ -40,7 +51,11 @@ export const fetchPaperGrammages = async (paperTypeId?: string) => {
   }
   
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching paper grammages:", error);
+    throw error;
+  }
+  console.log("Paper grammages fetched:", data);
   return data;
 };
 
@@ -63,7 +78,7 @@ export const fetchPaperPrice = async (paperTypeId: string, grammageId: string, s
     .eq('paper_type_id', paperTypeId)
     .eq('paper_grammage_id', grammageId)
     .eq('supplier_id', supplierId)
-    .single();
+    .maybeSingle();
   
   if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
   return data;

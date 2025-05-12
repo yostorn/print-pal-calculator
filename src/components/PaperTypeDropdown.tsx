@@ -3,20 +3,21 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Info } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPaperTypes } from "@/services/supabaseService";
 
 interface PaperTypeDropdownProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-const paperTypes = [
-  { value: "art-card", label: "Art Card" },
-  { value: "art-paper", label: "Art Paper" },
-  { value: "woodfree", label: "Woodfree" },
-  { value: "newsprint", label: "Newsprint" }
-];
-
 const PaperTypeDropdown: React.FC<PaperTypeDropdownProps> = ({ value, onChange }) => {
+  // Fetch paper types from database
+  const { data: paperTypes, isLoading, error } = useQuery({
+    queryKey: ['paperTypes'],
+    queryFn: fetchPaperTypes
+  });
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1">
@@ -28,14 +29,22 @@ const PaperTypeDropdown: React.FC<PaperTypeDropdownProps> = ({ value, onChange }
       </div>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger id="paperType" className="w-full">
-          <SelectValue placeholder="เลือกประเภทกระดาษ" />
+          <SelectValue placeholder={isLoading ? "กำลังโหลด..." : "เลือกประเภทกระดาษ"} />
         </SelectTrigger>
         <SelectContent>
-          {paperTypes.map((type) => (
-            <SelectItem key={type.value} value={type.value}>
-              {type.label}
-            </SelectItem>
-          ))}
+          {isLoading ? (
+            <SelectItem value="loading" disabled>กำลังโหลดข้อมูล...</SelectItem>
+          ) : error ? (
+            <SelectItem value="error" disabled>เกิดข้อผิดพลาด</SelectItem>
+          ) : paperTypes && paperTypes.length > 0 ? (
+            paperTypes.map((type) => (
+              <SelectItem key={type.id} value={type.id}>
+                {type.label}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value="no-data" disabled>ไม่พบข้อมูล</SelectItem>
+          )}
         </SelectContent>
       </Select>
     </div>

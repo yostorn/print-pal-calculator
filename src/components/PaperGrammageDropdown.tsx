@@ -3,6 +3,8 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Info } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPaperGrammages } from "@/services/supabaseService";
 
 interface PaperGrammageDropdownProps {
   value: string;
@@ -10,36 +12,13 @@ interface PaperGrammageDropdownProps {
   paperType: string;
 }
 
-const paperGrammages: Record<string, { value: string; label: string }[]> = {
-  "art-card": [
-    { value: "210", label: "210 gsm" },
-    { value: "230", label: "230 gsm" },
-    { value: "250", label: "250 gsm" },
-    { value: "300", label: "300 gsm" }
-  ],
-  "art-paper": [
-    { value: "80", label: "80 gsm" },
-    { value: "90", label: "90 gsm" },
-    { value: "100", label: "100 gsm" },
-    { value: "120", label: "120 gsm" },
-    { value: "130", label: "130 gsm" },
-    { value: "150", label: "150 gsm" }
-  ],
-  "woodfree": [
-    { value: "70", label: "70 gsm" },
-    { value: "80", label: "80 gsm" },
-    { value: "90", label: "90 gsm" },
-    { value: "100", label: "100 gsm" }
-  ],
-  "newsprint": [
-    { value: "45", label: "45 gsm" },
-    { value: "48", label: "48 gsm" },
-    { value: "52", label: "52 gsm" }
-  ]
-};
-
 const PaperGrammageDropdown: React.FC<PaperGrammageDropdownProps> = ({ value, onChange, paperType }) => {
-  const grammageOptions = paperType ? paperGrammages[paperType] || [] : [];
+  // Fetch grammages from database based on selected paper type
+  const { data: grammages, isLoading } = useQuery({
+    queryKey: ['paperGrammages', paperType],
+    queryFn: () => fetchPaperGrammages(paperType),
+    enabled: !!paperType
+  });
 
   return (
     <div className="space-y-2">
@@ -50,16 +29,24 @@ const PaperGrammageDropdown: React.FC<PaperGrammageDropdownProps> = ({ value, on
           <span className="tooltiptext">ความหนาของกระดาษที่วัดเป็นแกรม (gsm - กรัมต่อตารางเมตร)</span>
         </div>
       </div>
-      <Select value={value} onValueChange={onChange} disabled={!paperType}>
+      <Select value={value} onValueChange={onChange} disabled={!paperType || isLoading}>
         <SelectTrigger id="paperGrammage" className="w-full">
-          <SelectValue placeholder="เลือกแกรมกระดาษ" />
+          <SelectValue placeholder={isLoading ? "กำลังโหลด..." : "เลือกแกรมกระดาษ"} />
         </SelectTrigger>
         <SelectContent>
-          {grammageOptions.map((grammage) => (
-            <SelectItem key={grammage.value} value={grammage.value}>
-              {grammage.label}
-            </SelectItem>
-          ))}
+          {isLoading ? (
+            <SelectItem value="loading" disabled>กำลังโหลดข้อมูล...</SelectItem>
+          ) : !paperType ? (
+            <SelectItem value="no-paper-type" disabled>โปรดเลือกประเภทกระดาษก่อน</SelectItem>
+          ) : grammages && grammages.length > 0 ? (
+            grammages.map((grammage) => (
+              <SelectItem key={grammage.id} value={grammage.id}>
+                {grammage.grammage} gsm
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value="no-data" disabled>ไม่พบข้อมูลแกรมกระดาษ</SelectItem>
+          )}
         </SelectContent>
       </Select>
     </div>
