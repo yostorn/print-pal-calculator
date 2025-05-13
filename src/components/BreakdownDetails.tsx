@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
 
 interface BreakdownDetailsProps {
-  breakdown: {
+  selectedQuantityIndex: number; // Added this prop
+  breakdowns: Array<{
     plateType: string;
     plateCost: number;
     paperCost: number;
@@ -26,10 +27,18 @@ interface BreakdownDetailsProps {
     profit: number;
     baseCost: number;
     wastage: number;
-  };
+  }>; // Changed from breakdown to breakdowns array with index
 }
 
-const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ breakdown }) => {
+const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityIndex, breakdowns }) => {
+  // Check if we have valid data and index
+  if (!breakdowns || breakdowns.length === 0 || !breakdowns[selectedQuantityIndex]) {
+    return null;
+  }
+
+  // Get the selected breakdown using the index
+  const breakdown = breakdowns[selectedQuantityIndex];
+
   return (
     <div className="space-y-4">
       <h3 className="font-medium text-lg">รายละเอียดการคำนวณ</h3>
