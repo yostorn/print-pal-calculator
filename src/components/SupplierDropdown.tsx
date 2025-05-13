@@ -3,6 +3,8 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Info } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchSuppliers } from "@/services/supabaseService";
 
 interface SupplierDropdownProps {
   value: string;
@@ -10,31 +12,16 @@ interface SupplierDropdownProps {
   paperType: string;
 }
 
-const suppliers: Record<string, { value: string; label: string }[]> = {
-  "art-card": [
-    { value: "supplier-a", label: "Supplier A" },
-    { value: "supplier-b", label: "Supplier B" },
-    { value: "supplier-c", label: "Supplier C" }
-  ],
-  "art-paper": [
-    { value: "supplier-a", label: "Supplier A" },
-    { value: "supplier-d", label: "Supplier D" },
-    { value: "supplier-e", label: "Supplier E" }
-  ],
-  "woodfree": [
-    { value: "supplier-b", label: "Supplier B" },
-    { value: "supplier-c", label: "Supplier C" },
-    { value: "supplier-f", label: "Supplier F" }
-  ],
-  "newsprint": [
-    { value: "supplier-g", label: "Supplier G" },
-    { value: "supplier-h", label: "Supplier H" }
-  ]
-};
-
 const SupplierDropdown: React.FC<SupplierDropdownProps> = ({ value, onChange, paperType }) => {
-  const supplierOptions = paperType ? suppliers[paperType] || [] : [];
+  // Fetch suppliers from database
+  const { data: suppliers, isLoading, error } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: fetchSuppliers
+  });
 
+  // Debug log
+  console.log("Suppliers data:", suppliers);
+  
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1">
@@ -44,16 +31,24 @@ const SupplierDropdown: React.FC<SupplierDropdownProps> = ({ value, onChange, pa
           <span className="tooltiptext">บริษัทผู้จำหน่ายกระดาษ</span>
         </div>
       </div>
-      <Select value={value} onValueChange={onChange} disabled={!paperType}>
+      <Select value={value} onValueChange={onChange}>
         <SelectTrigger id="supplier" className="w-full">
           <SelectValue placeholder="เลือก Supplier" />
         </SelectTrigger>
         <SelectContent>
-          {supplierOptions.map((supplier) => (
-            <SelectItem key={supplier.value} value={supplier.value}>
-              {supplier.label}
-            </SelectItem>
-          ))}
+          {isLoading ? (
+            <SelectItem value="loading" disabled>กำลังโหลดข้อมูล...</SelectItem>
+          ) : error ? (
+            <SelectItem value="error" disabled>เกิดข้อผิดพลาด</SelectItem>
+          ) : suppliers && suppliers.length > 0 ? (
+            suppliers.map((supplier) => (
+              <SelectItem key={supplier.id} value={supplier.id}>
+                {supplier.name}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value="no-data" disabled>ไม่พบข้อมูล Supplier</SelectItem>
+          )}
         </SelectContent>
       </Select>
     </div>

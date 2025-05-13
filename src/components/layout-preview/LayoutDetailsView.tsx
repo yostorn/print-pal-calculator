@@ -3,8 +3,9 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { RotateCw, Info } from "lucide-react";
+import { RotateCw, Info, Ruler } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import LayoutCanvas from "./LayoutCanvas";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -23,6 +24,13 @@ interface LayoutDetailsViewProps {
   onRotate: () => void;
   printPerSheet: number;
   wastePercentage: number;
+  useCustomSize?: boolean;
+  customWidth?: string;
+  customHeight?: string;
+  onCustomWidthChange?: (width: string) => void;
+  onCustomHeightChange?: (height: string) => void;
+  onApplyCustomSize?: () => void;
+  onResetSize?: () => void;
 }
 
 const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
@@ -36,7 +44,14 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
   rotation,
   onRotate,
   printPerSheet,
-  wastePercentage
+  wastePercentage,
+  useCustomSize = false,
+  customWidth = "",
+  customHeight = "",
+  onCustomWidthChange,
+  onCustomHeightChange,
+  onApplyCustomSize,
+  onResetSize
 }) => {
   // Local state for paper selection within this dialog
   const [paperType, setPaperType] = useState<string>("");
@@ -44,6 +59,11 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
   const [localPaperWidth, setLocalPaperWidth] = useState(paperWidth);
   const [localPaperHeight, setLocalPaperHeight] = useState(paperHeight);
   const [localPrintPerSheet, setLocalPrintPerSheet] = useState(printPerSheet);
+  
+  // Local custom size state
+  const [localCustomWidth, setLocalCustomWidth] = useState(customWidth);
+  const [localCustomHeight, setLocalCustomHeight] = useState(customHeight);
+  const [localUseCustomSize, setLocalUseCustomSize] = useState(useCustomSize);
   
   // Fetch paper types
   const { data: paperTypes } = useQuery({
@@ -64,8 +84,38 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
       setLocalPaperWidth(paperWidth);
       setLocalPaperHeight(paperHeight);
       setLocalPrintPerSheet(printPerSheet);
+      setLocalCustomWidth(customWidth);
+      setLocalCustomHeight(customHeight);
+      setLocalUseCustomSize(useCustomSize);
     }
-  }, [isOpen, paperWidth, paperHeight, printPerSheet]);
+  }, [isOpen, paperWidth, paperHeight, printPerSheet, customWidth, customHeight, useCustomSize]);
+  
+  // Update local custom dimensions and sync with parent when changed
+  const handleCustomWidthChange = (value: string) => {
+    setLocalCustomWidth(value);
+    if (onCustomWidthChange) onCustomWidthChange(value);
+  };
+  
+  const handleCustomHeightChange = (value: string) => {
+    setLocalCustomHeight(value);
+    if (onCustomHeightChange) onCustomHeightChange(value);
+  };
+  
+  // Handle apply custom size
+  const handleApplyCustomSize = () => {
+    if (onApplyCustomSize) {
+      onApplyCustomSize();
+      setLocalUseCustomSize(true);
+    }
+  };
+  
+  // Handle reset to selected paper size
+  const handleResetSize = () => {
+    if (onResetSize) {
+      onResetSize();
+      setLocalUseCustomSize(false);
+    }
+  };
   
   // Update local dimensions when paper size changes
   const handlePaperSizeChange = (sizeId: string) => {
@@ -74,6 +124,10 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
       setSelectedPaperSize(size);
       setLocalPaperWidth(size.width);
       setLocalPaperHeight(size.height);
+      
+      // Also update custom size inputs
+      setLocalCustomWidth(size.width.toString());
+      setLocalCustomHeight(size.height.toString());
       
       // Recalculate prints per sheet
       const jobWidthInch = jobWidth / 2.54;
@@ -90,8 +144,12 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
       }
     }
   };
+  
+  // Determine effective dimensions based on custom size setting
+  const effectivePaperWidth = localUseCustomSize ? parseFloat(localCustomWidth) || 0 : localPaperWidth;
+  const effectivePaperHeight = localUseCustomSize ? parseFloat(localCustomHeight) || 0 : localPaperHeight;
 
-  const hasSufficientData = !!localPaperWidth && !!localPaperHeight && !!jobWidth && !!jobHeight;
+  const hasSufficientData = !!effectivePaperWidth && !!effectivePaperHeight && !!jobWidth && !!jobHeight;
 
   // Common content for both dialog and sheet
   const DetailsContent = () => (
@@ -142,11 +200,71 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
         </div>
       </div>
       
+      {/* Custom Paper Size Inputs */}
+      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg mb-4">
+        <h3 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+          <Ruler className="h-4 w-4" />
+          ปรับขนาดกระดาษด้วยตนเอง (นิ้ว)
+        </h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+          <div className="space-y-1">
+            <label className="block text-sm">ความกว้าง</label>
+            <Input 
+              type="number"
+              step="0.01"
+              value={localCustomWidth}
+              onChange={(e) => handleCustomWidthChange(e.target.value)}
+              placeholder="กว้าง (นิ้ว)"
+            />
+          </div>
+          
+          <div className="space-y-1">
+            <label className="block text-sm">ความสูง</label>
+            <Input 
+              type="number"
+              step="0.01"
+              value={localCustomHeight}
+              onChange={(e) => handleCustomHeightChange(e.target.value)}
+              placeholder="สูง (นิ้ว)"
+            />
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            size="sm"
+            onClick={handleApplyCustomSize}
+            disabled={!(parseFloat(localCustomWidth) > 0 && parseFloat(localCustomHeight) > 0)}
+          >
+            ใช้ขนาดนี้
+          </Button>
+          
+          {localUseCustomSize && (
+            <Button 
+              size="sm"
+              variant="outline"
+              onClick={handleResetSize}
+            >
+              กลับไปใช้ขนาดเดิม
+            </Button>
+          )}
+        </div>
+        
+        {localUseCustomSize && (
+          <Alert className="mt-3 text-blue-700 bg-blue-50 border-blue-200">
+            <AlertDescription>
+              กำลังใช้ขนาดกระดาษที่กำหนดเอง: {localCustomWidth}" × {localCustomHeight}"
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+      
       {!hasSufficientData && (
         <Alert className="mb-4 bg-yellow-50 border-yellow-200">
           <AlertTitle className="text-yellow-800">กรุณาเลือกข้อมูลให้ครบถ้วน</AlertTitle>
           <AlertDescription className="text-yellow-700">
-            {!localPaperWidth || !localPaperHeight 
+            {!effectivePaperWidth || !effectivePaperHeight 
               ? "กรุณาเลือกประเภทกระดาษและขนาดกระดาษก่อน" 
               : "กรุณาระบุขนาดงานให้ครบถ้วน"}
           </AlertDescription>
@@ -157,7 +275,7 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
         <>
           <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p><strong>ขนาดกระดาษ:</strong> {localPaperWidth} x {localPaperHeight} นิ้ว</p>
+              <p><strong>ขนาดกระดาษ:</strong> {effectivePaperWidth} x {effectivePaperHeight} นิ้ว</p>
               <p><strong>ขนาดงาน:</strong> {jobWidth} x {jobHeight} ซม. ({(jobWidth / 2.54).toFixed(2)} x {(jobHeight / 2.54).toFixed(2)} นิ้ว)</p>
               <p><strong>พิมพ์ได้:</strong> {localPrintPerSheet} ชิ้น/แผ่น</p>
             </div>
@@ -176,8 +294,8 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
       {isMobile ? (
         <div className="border rounded">
           <LayoutCanvas
-            paperWidth={localPaperWidth}
-            paperHeight={localPaperHeight}
+            paperWidth={effectivePaperWidth}
+            paperHeight={effectivePaperHeight}
             jobWidth={jobWidth}
             jobHeight={jobHeight}
             rotation={rotation}
@@ -190,8 +308,8 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
       ) : (
         <AspectRatio ratio={16/10} className="border">
           <LayoutCanvas
-            paperWidth={localPaperWidth}
-            paperHeight={localPaperHeight}
+            paperWidth={effectivePaperWidth}
+            paperHeight={effectivePaperHeight}
             jobWidth={jobWidth}
             jobHeight={jobHeight}
             rotation={rotation}

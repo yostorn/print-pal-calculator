@@ -2,7 +2,9 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RotateCw, Eye, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input"; // เพิ่ม Input
+import { Label } from "@/components/ui/label"; // เพิ่ม Label
+import { RotateCw, Eye, AlertCircle, Ruler } from "lucide-react";
 import { calculateLayout, getLayoutDescription, getSuitablePaperSizes } from "@/utils/layoutCalculations";
 import LayoutCanvas from "./LayoutCanvas";
 import LayoutDetailsView from "./LayoutDetailsView";
@@ -37,6 +39,11 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
   const [calculationAttempted, setCalculationAttempted] = useState(false);
   
+  // Custom size inputs
+  const [customWidth, setCustomWidth] = useState(paperWidth?.toString() || "");
+  const [customHeight, setCustomHeight] = useState(paperHeight?.toString() || "");
+  const [useCustomSize, setUseCustomSize] = useState(false);
+  
   // Use refs to track previous values
   const prevValuesRef = useRef({
     paperWidth,
@@ -45,22 +52,35 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     jobHeight
   });
   
+  // Update custom sizes when paper size changes (if not using custom)
+  useEffect(() => {
+    if (!useCustomSize && paperWidth && paperHeight) {
+      setCustomWidth(paperWidth.toString());
+      setCustomHeight(paperHeight.toString());
+    }
+  }, [paperWidth, paperHeight, useCustomSize]);
+  
   const computeLayout = useCallback(() => {
     console.log("Computing layout with:", { 
-      paperWidth, 
-      paperHeight, 
+      paperWidth: useCustomSize ? parseFloat(customWidth) || 0 : paperWidth, 
+      paperHeight: useCustomSize ? parseFloat(customHeight) || 0 : paperHeight, 
       jobWidth, 
       jobHeight, 
-      calculationAttempted 
+      calculationAttempted,
+      useCustomSize
     });
+    
+    // Get effective width and height based on custom size setting
+    const effectivePaperWidth = useCustomSize ? parseFloat(customWidth) || 0 : paperWidth;
+    const effectivePaperHeight = useCustomSize ? parseFloat(customHeight) || 0 : paperHeight;
     
     // Set flag to indicate calculation was attempted
     setCalculationAttempted(true);
     
     // Handle invalid inputs gracefully
-    if (!paperWidth || !paperHeight || !jobWidth || !jobHeight) {
+    if (!effectivePaperWidth || !effectivePaperHeight || !jobWidth || !jobHeight) {
       console.warn("Invalid dimensions for layout calculation:", {
-        paperWidth, paperHeight, jobWidth, jobHeight
+        effectivePaperWidth, effectivePaperHeight, jobWidth, jobHeight
       });
       setPrintPerSheet(0);
       setWastePercentage(0);
@@ -75,7 +95,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     const jobHeightInch = jobHeight / 2.54;
     
     // Calculate layout using the utility function
-    const result = calculateLayout(paperWidth, paperHeight, jobWidthInch, jobHeightInch);
+    const result = calculateLayout(effectivePaperWidth, effectivePaperHeight, jobWidthInch, jobHeightInch);
     
     console.log("Layout calculation result:", result);
     
@@ -88,7 +108,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     onLayoutChange(result.printPerSheet);
     
     return result;
-  }, [paperWidth, paperHeight, jobWidth, jobHeight, onLayoutChange, calculationAttempted]);
+  }, [paperWidth, paperHeight, jobWidth, jobHeight, onLayoutChange, calculationAttempted, customWidth, customHeight, useCustomSize]);
   
   // Find suitable paper sizes for the job
   useEffect(() => {
@@ -111,7 +131,10 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       paperWidth, 
       paperHeight, 
       jobWidth, 
-      jobHeight 
+      jobHeight,
+      customWidth,
+      customHeight,
+      useCustomSize
     });
     
     // Get previous values from ref
@@ -136,7 +159,11 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       jobHeight
     };
     
-    if (paperWidth && paperHeight && jobWidth && jobHeight) {
+    // Check if we have either standard paper dimensions or custom ones
+    const hasPaperDimensions = (paperWidth && paperHeight) || 
+                              (useCustomSize && parseFloat(customWidth) > 0 && parseFloat(customHeight) > 0);
+                              
+    if (hasPaperDimensions && jobWidth && jobHeight) {
       computeLayout();
     } else {
       // Reset values if we don't have all dimensions
@@ -144,7 +171,23 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       setWastePercentage(0);
       onLayoutChange(0);
     }
-  }, [paperWidth, paperHeight, jobWidth, jobHeight, computeLayout, onLayoutChange]);
+  }, [paperWidth, paperHeight, jobWidth, jobHeight, computeLayout, onLayoutChange, customWidth, customHeight, useCustomSize]);
+  
+  // Apply custom size and recalculate
+  const handleApplyCustomSize = () => {
+    if (parseFloat(customWidth) > 0 && parseFloat(customHeight) > 0) {
+      setUseCustomSize(true);
+      computeLayout();
+    }
+  };
+  
+  // Reset to selected paper size
+  const handleResetSize = () => {
+    setUseCustomSize(false);
+    setCustomWidth(paperWidth?.toString() || "");
+    setCustomHeight(paperHeight?.toString() || "");
+    computeLayout();
+  };
   
   const toggleRotation = () => {
     setRotation(!rotation);
@@ -154,8 +197,12 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     const effectiveJobWidth = !rotation ? jobHeightInch : jobWidthInch;
     const effectiveJobHeight = !rotation ? jobWidthInch : jobHeightInch;
     
-    const cols = Math.floor(paperWidth / effectiveJobWidth);
-    const rows = Math.floor(paperHeight / effectiveJobHeight);
+    // Use custom size if enabled
+    const effectivePaperWidth = useCustomSize ? parseFloat(customWidth) || 0 : paperWidth;
+    const effectivePaperHeight = useCustomSize ? parseFloat(customHeight) || 0 : paperHeight;
+    
+    const cols = Math.floor(effectivePaperWidth / effectiveJobWidth);
+    const rows = Math.floor(effectivePaperHeight / effectiveJobHeight);
     const totalPrints = cols * rows;
     
     console.log("Manual rotation toggled:", {
@@ -172,7 +219,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     
     // Recalculate waste percentage
     const usedArea = totalPrints * (effectiveJobWidth * effectiveJobHeight);
-    const totalArea = paperWidth * paperHeight;
+    const totalArea = effectivePaperWidth * effectivePaperHeight;
     const waste = ((totalArea - usedArea) / totalArea) * 100;
     setWastePercentage(parseFloat(waste.toFixed(2)));
   };
@@ -197,14 +244,23 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   
   // Force a recalculation of the layout
   const handleForceCalculation = () => {
-    if (paperWidth && paperHeight && jobWidth && jobHeight) {
+    if (useCustomSize ? 
+        (parseFloat(customWidth) > 0 && parseFloat(customHeight) > 0) : 
+        (paperWidth && paperHeight)) {
       console.log("Forcing layout recalculation");
       computeLayout();
     }
   };
 
-  const hasSufficientData = !!paperWidth && !!paperHeight && !!jobWidth && !!jobHeight;
+  const hasSufficientData = useCustomSize ? 
+    (parseFloat(customWidth) > 0 && parseFloat(customHeight) > 0 && jobWidth > 0 && jobHeight > 0) : 
+    (!!paperWidth && !!paperHeight && !!jobWidth && !!jobHeight);
+    
   const showError = calculationAttempted && !printPerSheet && hasSufficientData;
+  
+  // Get effective paper dimensions
+  const effectivePaperWidth = useCustomSize ? parseFloat(customWidth) || 0 : paperWidth;
+  const effectivePaperHeight = useCustomSize ? parseFloat(customHeight) || 0 : paperHeight;
 
   return (
     <Card>
@@ -235,6 +291,69 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
         </div>
       </CardHeader>
       <CardContent className="p-4">
+        {/* Custom Paper Size Section */}
+        <div className="mb-4 p-3 bg-gray-50 border rounded-md">
+          <div className="flex items-center gap-2 mb-2">
+            <Ruler className="h-4 w-4 text-gray-600" />
+            <h3 className="font-medium">ปรับขนาดกระดาษด้วยตนเอง (นิ้ว)</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div>
+              <Label htmlFor="customWidth" className="text-xs">ความกว้าง</Label>
+              <Input 
+                id="customWidth" 
+                type="number" 
+                step="0.01"
+                value={customWidth} 
+                onChange={(e) => setCustomWidth(e.target.value)}
+                className="h-8"
+                placeholder="กว้าง (นิ้ว)"
+              />
+            </div>
+            <div>
+              <Label htmlFor="customHeight" className="text-xs">ความสูง</Label>
+              <Input 
+                id="customHeight" 
+                type="number"
+                step="0.01" 
+                value={customHeight} 
+                onChange={(e) => setCustomHeight(e.target.value)}
+                className="h-8"
+                placeholder="สูง (นิ้ว)"
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={handleApplyCustomSize}
+              disabled={!(parseFloat(customWidth) > 0 && parseFloat(customHeight) > 0)}
+            >
+              ใช้ขนาดนี้
+            </Button>
+            {useCustomSize && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={handleResetSize}
+                disabled={!paperWidth || !paperHeight}
+              >
+                กลับไปใช้ขนาดเดิม
+              </Button>
+            )}
+          </div>
+          
+          {useCustomSize && (
+            <Alert className="mt-2 py-2 bg-blue-50 text-blue-700 border-blue-200">
+              <AlertDescription>
+                กำลังใช้ขนาดกระดาษที่กำหนดเอง: {customWidth}" × {customHeight}"
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
         <div className="mb-4">
           <p className="text-sm text-gray-700 mb-1">
             พิมพ์ได้: <strong>{printPerSheet || 0}</strong> ชิ้น/แผ่น
@@ -243,7 +362,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
             เปอร์เซ็นต์ waste: <strong>{wastePercentage || 0}%</strong>
           </p>
           <p className="text-sm text-gray-700 mt-1">
-            {getLayoutDescription(jobWidth, jobHeight, paperWidth, paperHeight, printPerSheet, rotation)}
+            {getLayoutDescription(jobWidth, jobHeight, effectivePaperWidth, effectivePaperHeight, printPerSheet, rotation)}
           </p>
 
           {showError && (
@@ -264,7 +383,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
           )}
 
           {/* Paper Size Suggestions */}
-          {suitableSizes.length > 0 && (
+          {suitableSizes.length > 0 && !useCustomSize && (
             <div className="mt-3 p-3 bg-blue-50 rounded-md">
               <p className="text-sm font-medium text-blue-700">ขนาดกระดาษแนะนำ:</p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -285,8 +404,8 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
         </div>
         <div className="border rounded bg-gray-50">
           <LayoutCanvas 
-            paperWidth={paperWidth} 
-            paperHeight={paperHeight}
+            paperWidth={effectivePaperWidth} 
+            paperHeight={effectivePaperHeight}
             jobWidth={jobWidth}
             jobHeight={jobHeight}
             rotation={rotation}
@@ -299,14 +418,21 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
           isOpen={detailsOpen}
           onClose={handleCloseDetails}
           isMobile={isMobile}
-          paperWidth={paperWidth}
-          paperHeight={paperHeight}
+          paperWidth={effectivePaperWidth}
+          paperHeight={effectivePaperHeight}
           jobWidth={jobWidth}
           jobHeight={jobHeight}
           rotation={rotation}
           onRotate={toggleRotation}
           printPerSheet={printPerSheet}
           wastePercentage={wastePercentage}
+          useCustomSize={useCustomSize}
+          customWidth={customWidth}
+          customHeight={customHeight}
+          onCustomWidthChange={setCustomWidth}
+          onCustomHeightChange={setCustomHeight}
+          onApplyCustomSize={handleApplyCustomSize}
+          onResetSize={handleResetSize}
         />
       </CardContent>
     </Card>
