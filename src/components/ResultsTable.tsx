@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/utils";
 
 interface ResultsTableProps {
   quantities: string[];
@@ -16,10 +17,6 @@ interface ResultsTableProps {
   onViewLayoutDetails?: () => void;
   breakdowns?: any[];
 }
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(value);
-};
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ 
   quantities, 
@@ -52,8 +49,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     if (!breakdown) return null;
     
     // คำนวณค่ากระดาษรวมจากราคากระดาษต่อแผ่น x จำนวนกระดาษทั้งหมด
-    const totalPaperCost = breakdown.sheetCost * breakdown.totalSheets;
-
+    // Note: We now use the paperCost directly which is calculated using the correct formula
+    
     return (
       <div className="space-y-2 text-sm p-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -92,7 +89,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">ค่ากระดาษทั้งหมด:</span>
-                <span>{formatCurrency(totalPaperCost || 0)}</span>
+                <span>{formatCurrency(breakdown.paperCost || 0)}</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">ประเภทเพลท:</span>

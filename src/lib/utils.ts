@@ -51,3 +51,26 @@ export function calculatePaperUsage(
     cutsPerSheet
   };
 }
+
+/**
+ * Calculate paper cost using the correct formula
+ * @param reams - Number of reams needed
+ * @param paperWidth - Paper width in inches
+ * @param paperHeight - Paper height in inches
+ * @param grammage - Paper weight in GSM
+ * @param pricePerKg - Price per kilogram
+ * @param conversionFactor - Conversion factor (default: 3100)
+ * @returns - Total paper cost
+ */
+export function calculatePaperCost(
+  reams: number,
+  paperWidth: number,
+  paperHeight: number,
+  grammage: number,
+  pricePerKg: number,
+  conversionFactor: number = 3100
+) {
+  // Formula: (reams × width × height × GSM ÷ 3100 × price_per_kg)
+  const paperCost = reams * paperWidth * paperHeight * grammage / conversionFactor * pricePerKg;
+  return paperCost;
+}

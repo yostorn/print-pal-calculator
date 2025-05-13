@@ -596,7 +596,7 @@ export const usePrintCalculation = () => {
     }
   };
 
-  // Calculate results with better error handling and paper cuts
+  // Calculate results with the correct paper cost formula
   const calculate = async () => {
     console.log("Starting calculation with values:", {
       paperType, paperGrammage, supplier, width, height, printPerSheet, quantities, cutsPerSheet
@@ -679,64 +679,71 @@ export const usePrintCalculation = () => {
           throw new Error("ไม่มีข้อมูลขนาดกระดาษ");
         }
         
-        // Calculate parameters for the formulas
-        const paperAreaSqM = (selectedPaperSize.width * selectedPaperSize.height) / (39.37 * 39.37); // Convert square inches to square meters
-        const paperWeightPerSheet = paperAreaSqM * (parseInt(paperGrammage) / 1000); // Weight in kg
-        
         // Get conversion factor from settings or use default
         const conversionFactor = formulaSettings?.conversionFactor 
           ? parseInt(formulaSettings.conversionFactor) 
           : 3100;
         
-        // Prepare variables for formula evaluation
-        const formulaVariables = {
-          area_sqm: paperAreaSqM,
-          grammage: parseInt(paperGrammage),
-          weight: paperWeightPerSheet,
-          price_per_kg: paperPricePerKg,
-          size: selectedPaperSize,
-          job_size: {
-            width: parseFloat(width),
-            height: parseFloat(height)
-          },
-          quantity: qtyNum,
-          reams: paperUsage.reamsNeeded,
-          sheets: paperUsage.totalSheets,
-          master_sheets: paperUsage.masterSheetsNeeded,
-          ink_colors: parseInt(colors),
-          conversion_factor: conversionFactor,
-          printsPerSheet: printPerSheet,
-          waste: wastageNum
-        };
+        // Calculate paper area for paper weight calculation
+        const paperAreaSqM = (selectedPaperSize.width * selectedPaperSize.height) / (39.37 * 39.37); // Convert square inches to square meters
+        const paperWeightPerSheet = paperAreaSqM * (parseInt(paperGrammage) / 1000); // Weight in kg
         
-        // Calculate paper weight using formula if available
-        let paperWeightFormula = "(area_sqm * grammage / 1000)";
-        if (formulaSettings?.paperWeightFormula && formulaSettings.useAdvancedFormulas === "true") {
-          paperWeightFormula = formulaSettings.paperWeightFormula;
-        }
-        
-        const paperWeight = evaluateFormula(paperWeightFormula, formulaVariables) || paperWeightPerSheet;
-        
-        // Calculate paper cost
-        const sheetCost = paperWeight * paperPricePerKg;
-        
-        // Calculate total paper cost using formula if available
-        let paperCostResult;
-        let paperCostFormula = "(master_sheets * weight * price_per_kg)";
+        // Calculate paper cost using the new formula:
+        // (reams × width × height × GSM ÷ 3100 × price_per_kg)
+        let paperCost;
+        let paperCostFormula;
         
         if (formulaSettings?.paperCostFormula && formulaSettings.useAdvancedFormulas === "true") {
+          // Use custom formula if enabled
           paperCostFormula = formulaSettings.paperCostFormula;
-          paperCostResult = evaluateFormula(paperCostFormula, {
-            ...formulaVariables,
-            weight: paperWeight
-          });
+          
+          // Prepare variables for formula evaluation
+          const formulaVariables = {
+            area_sqm: paperAreaSqM,
+            grammage: parseInt(paperGrammage),
+            weight: paperWeightPerSheet,
+            price_per_kg: paperPricePerKg,
+            size: selectedPaperSize,
+            job_size: {
+              width: parseFloat(width),
+              height: parseFloat(height)
+            },
+            quantity: qtyNum,
+            reams: paperUsage.reamsNeeded,
+            sheets: paperUsage.totalSheets,
+            master_sheets: paperUsage.masterSheetsNeeded,
+            ink_colors: parseInt(colors),
+            conversion_factor: conversionFactor,
+            printsPerSheet: printPerSheet,
+            waste: wastageNum
+          };
+          
+          paperCost = evaluateFormula(paperCostFormula, formulaVariables);
         } else {
-          // Default calculation
-          paperCostResult = paperUsage.masterSheetsNeeded * paperWeight * paperPricePerKg;
+          // Use standard formula: (reams × width × height × GSM ÷ 3100 × price_per_kg)
+          paperCostFormula = "(reams * size.width * size.height * grammage / conversion_factor * price_per_kg)";
+          paperCost = calculatePaperCost(
+            paperUsage.reamsNeeded,
+            selectedPaperSize.width,
+            selectedPaperSize.height,
+            parseInt(paperGrammage),
+            paperPricePerKg,
+            conversionFactor
+          );
         }
         
-        const paperCost = paperCostResult || (paperUsage.masterSheetsNeeded * sheetCost);
-        console.log("Paper cost:", paperCost);
+        console.log("Paper cost calculation:", {
+          reams: paperUsage.reamsNeeded.toFixed(3),
+          width: selectedPaperSize.width,
+          height: selectedPaperSize.height,
+          grammage: parseInt(paperGrammage),
+          pricePerKg: paperPricePerKg,
+          conversionFactor: conversionFactor,
+          result: paperCost
+        });
+        
+        // Calculate per-sheet cost (for display purposes)
+        const sheetCost = paperCost / paperUsage.totalSheets;
         
         // Calculate coating cost if applicable
         const hasCoating = selectedCoating !== "none";
@@ -776,14 +783,14 @@ export const usePrintCalculation = () => {
         // Store the formula explanations for display
         const formulaExplanations = {
           paperWeightFormula: {
-            formula: paperWeightFormula,
-            result: paperWeight,
-            explanation: `พื้นที่กระดาษ ${paperAreaSqM.toFixed(3)} ตร.ม. × แกรม ${paperGrammage} ÷ 1000 = ${paperWeight.toFixed(3)} กก./แผ่น`
+            formula: formulaSettings?.paperWeightFormula || "(area_sqm * grammage / 1000)",
+            result: paperWeightPerSheet,
+            explanation: `พื้นที่กระดาษ ${paperAreaSqM.toFixed(3)} ตร.ม. × แกรม ${paperGrammage} ÷ 1000 = ${paperWeightPerSheet.toFixed(3)} กก./แผ่น`
           },
           paperCostFormula: {
             formula: paperCostFormula,
             result: paperCost,
-            explanation: `สูตร: ${paperCostFormula}\nค่าที่ใช้: จำนวนแผ่นมาสเตอร์ ${paperUsage.masterSheetsNeeded} × น้ำหนักต่อแผ่น ${paperWeight.toFixed(3)} กก. × ราคากระดาษ ${paperPricePerKg} บาท/กก. = ${paperCost.toFixed(2)} บาท`
+            explanation: `สูตร: (จำนวนรีม ${paperUsage.reamsNeeded.toFixed(3)} × กว้าง ${selectedPaperSize.width} นิ้ว × ยาว ${selectedPaperSize.height} นิ้ว × แกรม ${paperGrammage} ÷ ${conversionFactor} × ราคากระดาษ ${paperPricePerKg} บาท/กก.) = ${paperCost.toFixed(2)} บาท`
           },
           plateTypeFormula: {
             formula: formulaSettings?.plateSelection || "size.width > 24 || size.height > 35 ? 'ตัด 2' : 'ตัด 4'",
@@ -811,7 +818,7 @@ export const usePrintCalculation = () => {
           masterSheetsNeeded: paperUsage.masterSheetsNeeded,
           reamsNeeded: paperUsage.reamsNeeded,
           sheetCost,
-          paperWeight,
+          paperWeight: paperWeightPerSheet,
           colorNumber: parseInt(colors),
           hasCoating,
           coatingCost: coatingCostTotal,
@@ -830,7 +837,10 @@ export const usePrintCalculation = () => {
           paperUsage,
           formulaExplanations,
           conversionFactor,
-          inkCostPerColor
+          inkCostPerColor,
+          paperSize: selectedPaperSize,
+          grammage: parseInt(paperGrammage),
+          pricePerKg: paperPricePerKg
         });
       }
       
