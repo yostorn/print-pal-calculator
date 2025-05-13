@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, InfoCircle } from "lucide-react";
+import { Eye, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -141,7 +141,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <InfoCircle className="h-4 w-4 text-blue-500" />
+                              <Info className="h-4 w-4 text-blue-500" />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-80">
