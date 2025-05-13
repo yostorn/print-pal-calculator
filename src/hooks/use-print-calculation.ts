@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +11,7 @@ import {
   fetchCalculationSettings
 } from "@/services/supabaseService";
 import { calculateLayout } from "@/utils/layoutCalculations";
+import { calculatePaperUsage } from "@/lib/utils";
 
 export const usePrintCalculation = () => {
   const { toast } = useToast();
@@ -41,6 +41,7 @@ export const usePrintCalculation = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isLayoutDetailsOpen, setIsLayoutDetailsOpen] = useState(false);
   const [bypassLayoutValidation, setBypassLayoutValidation] = useState(false);
+  const [cutsPerSheet, setCutsPerSheet] = useState(1); // Added cuts per sheet
 
   // Results
   const [results, setResults] = useState<any[]>([]);
@@ -199,6 +200,12 @@ export const usePrintCalculation = () => {
       }
     }
   }, [validationError]);
+  
+  // Handle cuts per sheet change
+  const handleCutsPerSheetChange = useCallback((cuts: number) => {
+    console.log("Cuts per sheet changed to:", cuts);
+    setCutsPerSheet(cuts);
+  }, []);
 
   const handleOpenLayoutDetails = () => {
     console.log("Opening layout details with current state:", {
@@ -334,7 +341,7 @@ export const usePrintCalculation = () => {
       return false;
     }
     if (!paperGrammage) {
-      setValidationError("��รุณาเลือกแกรมกระดาษ");
+      setValidationError("กรุณาเลือกแกรมกระดาษ");
       return false;
     }
     if (!supplier) {
@@ -397,10 +404,10 @@ export const usePrintCalculation = () => {
     return true;
   };
 
-  // Calculate results with better error handling
+  // Calculate results with better error handling and paper cuts
   const calculate = async () => {
     console.log("Starting calculation with values:", {
-      paperType, paperGrammage, supplier, width, height, printPerSheet, quantities
+      paperType, paperGrammage, supplier, width, height, printPerSheet, quantities, cutsPerSheet
     });
 
     try {
@@ -432,11 +439,19 @@ export const usePrintCalculation = () => {
         const paperPricePerKg = await getPaperPrice(paperType, paperGrammage, supplier);
         console.log("Paper price per kg:", paperPricePerKg);
         
-        // Calculate sheets needed
+        // Calculate paper usage with cuts per sheet
         const wastageNum = parseInt(wastage) || 0;
-        const sheetsNeeded = Math.ceil(qtyNum / printPerSheet);
-        const totalSheets = sheetsNeeded + wastageNum;
-        console.log("Total sheets needed:", totalSheets, "(", sheetsNeeded, "sheets + ", wastageNum, "wastage)");
+        
+        // Calculate paper usage details
+        const paperUsage = calculatePaperUsage(
+          qtyNum,
+          printPerSheet,
+          wastageNum,
+          cutsPerSheet,
+          500 // Default sheets per ream
+        );
+        
+        console.log("Paper usage calculation:", paperUsage);
         
         // Determine plate type based on paper size
         const plateType = selectedPaperSize && 
@@ -456,16 +471,18 @@ export const usePrintCalculation = () => {
         const paperAreaSqM = (selectedPaperSize.width * selectedPaperSize.height) / (39.37 * 39.37); // Convert square inches to square meters
         const paperWeightPerSheet = paperAreaSqM * (parseInt(paperGrammage) / 1000); // Weight in kg
         const sheetCost = paperWeightPerSheet * paperPricePerKg;
-        const paperCost = totalSheets * sheetCost;
+        
+        // Use master sheets for cost calculation
+        const paperCost = paperUsage.masterSheetsNeeded * sheetCost;
         console.log("Paper cost:", paperCost);
         
         // Calculate coating cost if applicable
         const hasCoating = selectedCoating !== "none";
-        const coatingCostTotal = hasCoating ? totalSheets * parseFloat(coatingCost || "0") : 0;
+        const coatingCostTotal = hasCoating ? paperUsage.totalSheets * parseFloat(coatingCost || "0") : 0;
         
         // Calculate ink cost (simplified estimation)
         const inkCostPerSheet = parseInt(colors) * 0.5; // Simplified - 0.5 baht per color per sheet
-        const inkCost = totalSheets * inkCostPerSheet;
+        const inkCost = paperUsage.totalSheets * inkCostPerSheet;
         
         // Calculate base print cost if applicable
         const basePrintCostTotal = hasBasePrint ? parseFloat(basePrintCost || "0") : 0;
@@ -494,7 +511,8 @@ export const usePrintCalculation = () => {
           totalCost,
           unitCost,
           printPerSheet,
-          sheets: totalSheets,
+          sheets: paperUsage.totalSheets,
+          masterSheets: paperUsage.masterSheetsNeeded,
           paperSize: selectedPaperSize ? `${selectedPaperSize.width}×${selectedPaperSize.height} นิ้ว` : '',
         });
         
@@ -504,7 +522,9 @@ export const usePrintCalculation = () => {
           paperCost,
           inkCost,
           basePlateCost: getPlateCost(plateType),
-          totalSheets,
+          totalSheets: paperUsage.totalSheets,
+          masterSheetsNeeded: paperUsage.masterSheetsNeeded,
+          reamsNeeded: paperUsage.reamsNeeded,
           sheetCost,
           colorNumber: parseInt(colors),
           hasCoating,
@@ -519,7 +539,9 @@ export const usePrintCalculation = () => {
           profitMargin: profitMarginPercent,
           profit: profit,
           baseCost,
-          wastage: wastageNum
+          wastage: wastageNum,
+          cutsPerSheet,
+          paperUsage
         });
       }
       
@@ -610,6 +632,7 @@ export const usePrintCalculation = () => {
     showPreview, setShowPreview,
     isLayoutDetailsOpen, setIsLayoutDetailsOpen,
     bypassLayoutValidation, setBypassLayoutValidation,
+    cutsPerSheet, setCutsPerSheet, // Added to return
     
     // Results
     results, setResults,
@@ -628,6 +651,7 @@ export const usePrintCalculation = () => {
     handleOpenLayoutDetails,
     calculate,
     validateForm,
-    forceLayoutCalculation
+    forceLayoutCalculation,
+    handleCutsPerSheetChange, // Added to return
   };
 };

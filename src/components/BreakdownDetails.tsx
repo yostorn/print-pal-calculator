@@ -2,9 +2,10 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface BreakdownDetailsProps {
-  selectedQuantityIndex: number; // Added this prop
+  selectedQuantityIndex: number;
   breakdowns: Array<{
     plateType: string;
     plateCost: number;
@@ -12,6 +13,8 @@ interface BreakdownDetailsProps {
     inkCost: number;
     basePlateCost: number;
     totalSheets: number;
+    masterSheetsNeeded?: number;
+    reamsNeeded?: number;
     sheetCost: number;
     colorNumber: number;
     hasCoating: boolean;
@@ -27,7 +30,14 @@ interface BreakdownDetailsProps {
     profit: number;
     baseCost: number;
     wastage: number;
-  }>; // Changed from breakdown to breakdowns array with index
+    cutsPerSheet?: number;
+    paperUsage?: {
+      sheetsNeeded: number;
+      totalSheets: number;
+      masterSheetsNeeded: number;
+      reamsNeeded: number;
+    };
+  }>;
 }
 
 const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityIndex, breakdowns }) => {
@@ -40,9 +50,68 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
   const breakdown = breakdowns[selectedQuantityIndex];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h3 className="font-medium text-lg">รายละเอียดการคำนวณ</h3>
       
+      {/* Paper Usage Details Card */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base text-blue-800">รายละเอียดการใช้กระดาษ</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-blue-700">พิมพ์ได้:</p>
+                <p className="font-medium">{breakdown.paperUsage?.sheetsNeeded || breakdown.totalSheets - breakdown.wastage} แผ่น</p>
+                <p className="text-xs text-blue-600">(ไม่รวมเผื่อเสีย)</p>
+              </div>
+              <div>
+                <p className="text-blue-700">เผื่อเสีย:</p>
+                <p className="font-medium">{breakdown.wastage} แผ่น</p>
+              </div>
+            </div>
+            
+            <div className="pt-1 border-t border-blue-200">
+              <p className="text-blue-700">จำนวนกระดาษที่ใช้ทั้งหมด:</p>
+              <p className="font-medium">{breakdown.totalSheets} แผ่น</p>
+              <p className="text-xs text-blue-600">(รวมเผื่อเสีย)</p>
+            </div>
+            
+            {(breakdown.cutsPerSheet && breakdown.cutsPerSheet > 1) && (
+              <>
+                <div className="pt-1 border-t border-blue-200">
+                  <p className="text-blue-700">ตัดกระดาษ:</p>
+                  <p className="font-medium">ตัด {breakdown.cutsPerSheet} จากกระดาษแผ่นใหญ่</p>
+                </div>
+                
+                <div className="pt-1 border-t border-blue-200">
+                  <p className="text-blue-700">จำนวนแผ่นกระดาษใหญ่ที่ต้องใช้:</p>
+                  <p className="font-medium">{breakdown.masterSheetsNeeded || Math.ceil(breakdown.totalSheets / (breakdown.cutsPerSheet || 1))} แผ่น</p>
+                </div>
+                
+                <div className="pt-1 border-t border-blue-200">
+                  <p className="text-blue-700">จำนวนรีมที่ต้องใช้:</p>
+                  <p className="font-medium">{breakdown.reamsNeeded?.toFixed(3) || (breakdown.masterSheetsNeeded / 500).toFixed(3)} รีม</p>
+                  <p className="text-xs text-blue-600">(1 รีม = 500 แผ่น)</p>
+                </div>
+              </>
+            )}
+            
+            <div className="pt-2 border-t border-blue-200">
+              <p className="text-blue-700">ราคากระดาษต่อแผ่น:</p>
+              <p className="font-medium">{formatCurrency(breakdown.sheetCost)}</p>
+            </div>
+            
+            <div className="pt-1 border-t border-blue-200 font-medium">
+              <p className="text-blue-800">ค่ากระดาษรวม:</p>
+              <p className="text-lg">{formatCurrency(breakdown.paperCost)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Main cost breakdown table */}
       <Table className="border">
         <TableBody>
           <TableRow>
@@ -54,7 +123,7 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
             <TableCell>{formatCurrency(breakdown.plateCost)}</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell className="font-medium">ค่ากระดาษทั้งหมด ({breakdown.totalSheets} แผ่น):</TableCell>
+            <TableCell className="font-medium">ค่ากระดาษทั้งหมด:</TableCell>
             <TableCell>{formatCurrency(breakdown.paperCost)}</TableCell>
           </TableRow>
           <TableRow>
@@ -78,7 +147,7 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
             </TableRow>
           )}
           
-          {/* Add base print cost row if applicable */}
+          {/* Base print cost row if applicable */}
           {breakdown.hasBasePrint && (
             <TableRow>
               <TableCell className="font-medium">ค่าตีพื้น:</TableCell>
@@ -117,6 +186,9 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
         <p>• เผื่อเสีย {breakdown.wastage} แผ่น</p>
         <p>• ค่าเพลทต่อสี {formatCurrency(breakdown.basePlateCost)}</p>
         <p>• ค่ากระดาษต่อแผ่น {formatCurrency(breakdown.sheetCost)}</p>
+        {breakdown.cutsPerSheet && breakdown.cutsPerSheet > 1 && (
+          <p>• จำนวนตัดกระดาษ: ตัด {breakdown.cutsPerSheet} จากกระดาษแผ่นใหญ่</p>
+        )}
       </div>
     </div>
   );

@@ -1,10 +1,9 @@
-
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"; // เพิ่ม Input
 import { Label } from "@/components/ui/label"; // เพิ่ม Label
-import { RotateCw, Eye, AlertCircle, Ruler } from "lucide-react";
+import { RotateCw, Eye, AlertCircle, Ruler, Scissors } from "lucide-react";
 import { calculateLayout, getLayoutDescription, getSuitablePaperSizes } from "@/utils/layoutCalculations";
 import LayoutCanvas from "./LayoutCanvas";
 import LayoutDetailsView from "./LayoutDetailsView";
@@ -19,6 +18,8 @@ interface LayoutPreviewProps {
   onLayoutChange: (printPerSheet: number) => void;
   paperSizes?: { id: string; name: string; width: number; height: number }[];
   onPaperSizeChange?: (sizeId: string) => void;
+  cutsPerSheet?: number;
+  onCutsPerSheetChange?: (cuts: number) => void;
 }
 
 const LayoutPreview: React.FC<LayoutPreviewProps> = ({
@@ -28,7 +29,9 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   jobHeight,
   onLayoutChange,
   paperSizes,
-  onPaperSizeChange
+  onPaperSizeChange,
+  cutsPerSheet = 1,
+  onCutsPerSheetChange
 }) => {
   const isMobile = useIsMobile();
   const [rotation, setRotation] = useState<boolean>(false);
@@ -43,6 +46,9 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
   const [customWidth, setCustomWidth] = useState(paperWidth?.toString() || "");
   const [customHeight, setCustomHeight] = useState(paperHeight?.toString() || "");
   const [useCustomSize, setUseCustomSize] = useState(false);
+  
+  // Cuts per sheet
+  const [localCutsPerSheet, setLocalCutsPerSheet] = useState(cutsPerSheet);
   
   // Use refs to track previous values
   const prevValuesRef = useRef({
@@ -59,6 +65,11 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       setCustomHeight(paperHeight.toString());
     }
   }, [paperWidth, paperHeight, useCustomSize]);
+  
+  // Update local cuts when prop changes
+  useEffect(() => {
+    setLocalCutsPerSheet(cutsPerSheet);
+  }, [cutsPerSheet]);
   
   const computeLayout = useCallback(() => {
     console.log("Computing layout with:", { 
@@ -90,12 +101,8 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
       return { printPerSheet: 0, wastePercentage: 0 };
     }
 
-    // Convert dimensions if needed (job dimensions are in cm)
-    const jobWidthInch = jobWidth / 2.54;
-    const jobHeightInch = jobHeight / 2.54;
-    
     // Calculate layout using the utility function
-    const result = calculateLayout(effectivePaperWidth, effectivePaperHeight, jobWidthInch, jobHeightInch);
+    const result = calculateLayout(effectivePaperWidth, effectivePaperHeight, jobWidth, jobHeight);
     
     console.log("Layout calculation result:", result);
     
@@ -242,6 +249,15 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
     }
   };
   
+  // Handle changing the number of cuts per sheet
+  const handleCutsPerSheetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value) || 1;
+    setLocalCutsPerSheet(value);
+    if (onCutsPerSheetChange) {
+      onCutsPerSheetChange(value);
+    }
+  };
+  
   // Force a recalculation of the layout
   const handleForceCalculation = () => {
     if (useCustomSize ? 
@@ -353,6 +369,35 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
             </Alert>
           )}
         </div>
+        
+        {/* Paper Cuts Section */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-center gap-2 mb-2">
+            <Scissors className="h-4 w-4 text-blue-600" />
+            <h3 className="font-medium">จำนวนตัดกระดาษ</h3>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="cutsPerSheet" className="text-sm">
+              จำนวนครั้งที่นำแผ่นใหญ่มาตัด
+            </Label>
+            <div className="flex items-center gap-3">
+              <Input
+                id="cutsPerSheet"
+                type="number"
+                min="1"
+                max="16"
+                value={localCutsPerSheet}
+                onChange={handleCutsPerSheetChange}
+                className="w-24 h-8"
+              />
+              <span className="text-sm text-blue-700">ครั้ง</span>
+            </div>
+            <p className="text-xs text-blue-600">
+              กรอกจำนวนครั้งที่ต้องตัดกระดาษแผ่นใหญ่ เช่น ตัด 4 หมายถึงกระดาษแผ่นใหญ่ถูกตัดเป็น 4 ส่วน
+            </p>
+          </div>
+        </div>
 
         <div className="mb-4">
           <p className="text-sm text-gray-700 mb-1">
@@ -433,6 +478,8 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
           onCustomHeightChange={setCustomHeight}
           onApplyCustomSize={handleApplyCustomSize}
           onResetSize={handleResetSize}
+          cutsPerSheet={localCutsPerSheet}
+          onCutsPerSheetChange={handleCutsPerSheetChange}
         />
       </CardContent>
     </Card>
