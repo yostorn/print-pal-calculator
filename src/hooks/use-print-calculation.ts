@@ -14,41 +14,155 @@ import {
 import { calculateLayout } from "@/utils/layoutCalculations";
 import { calculatePaperUsage } from "@/lib/utils";
 
+// สร้าง helper สำหรับการจัดการ localStorage
+const STORAGE_KEY = "print_calculator_state";
+
+// ฟังก์ชันสำหรับบันทึกสถานะลง localStorage
+const saveStateToLocalStorage = (state: any) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.error("Failed to save state to localStorage:", error);
+  }
+};
+
+// ฟังก์ชันสำหรับดึงสถานะจาก localStorage
+const loadStateFromLocalStorage = () => {
+  try {
+    const savedState = localStorage.getItem(STORAGE_KEY);
+    return savedState ? JSON.parse(savedState) : null;
+  } catch (error) {
+    console.error("Failed to load state from localStorage:", error);
+    return null;
+  }
+};
+
 export const usePrintCalculation = () => {
   const { toast } = useToast();
   
-  // Form state
-  const [jobType, setJobType] = useState("");
-  const [paperType, setPaperType] = useState("");
-  const [paperGrammage, setPaperGrammage] = useState("");
-  const [supplier, setSupplier] = useState("");
-  const [width, setWidth] = useState("");
-  const [height, setHeight] = useState("");
-  const [sizeUnit, setSizeUnit] = useState<"cm" | "inch">("cm");
-  const [colors, setColors] = useState("4");
-  const [selectedCoating, setSelectedCoating] = useState("none");
-  const [coatingCost, setCoatingCost] = useState("0");
-  const [quantities, setQuantities] = useState<string[]>(["1000"]);
-  const [wastage, setWastage] = useState("250");
-  const [hasDieCut, setHasDieCut] = useState(false);
-  const [dieCutCost, setDieCutCost] = useState("0");
-  const [hasBasePrint, setHasBasePrint] = useState(false);
-  const [basePrintCost, setBasePrintCost] = useState("0");
-  const [shippingCost, setShippingCost] = useState("0");
-  const [packagingCost, setPackagingCost] = useState("0");
-  const [profitMargin, setProfitMargin] = useState("30");
-  const [printPerSheet, setPrintPerSheet] = useState(0);
+  // โหลดค่าที่บันทึกไว้จาก localStorage
+  const savedState = loadStateFromLocalStorage();
+  
+  // Form state with default values from localStorage if available
+  const [jobType, setJobType] = useState(savedState?.jobType || "");
+  const [paperType, setPaperType] = useState(savedState?.paperType || "");
+  const [paperGrammage, setPaperGrammage] = useState(savedState?.paperGrammage || "");
+  const [supplier, setSupplier] = useState(savedState?.supplier || "");
+  const [width, setWidth] = useState(savedState?.width || "");
+  const [height, setHeight] = useState(savedState?.height || "");
+  const [sizeUnit, setSizeUnit] = useState<"cm" | "inch">(savedState?.sizeUnit || "cm");
+  const [colors, setColors] = useState(savedState?.colors || "4");
+  const [selectedCoating, setSelectedCoating] = useState(savedState?.selectedCoating || "none");
+  const [coatingCost, setCoatingCost] = useState(savedState?.coatingCost || "0");
+  const [quantities, setQuantities] = useState<string[]>(savedState?.quantities || ["1000"]);
+  const [wastage, setWastage] = useState(savedState?.wastage || "250");
+  const [hasDieCut, setHasDieCut] = useState(savedState?.hasDieCut || false);
+  const [dieCutCost, setDieCutCost] = useState(savedState?.dieCutCost || "0");
+  const [hasBasePrint, setHasBasePrint] = useState(savedState?.hasBasePrint || false);
+  const [basePrintCost, setBasePrintCost] = useState(savedState?.basePrintCost || "0");
+  const [shippingCost, setShippingCost] = useState(savedState?.shippingCost || "0");
+  const [packagingCost, setPackagingCost] = useState(savedState?.packagingCost || "0");
+  const [profitMargin, setProfitMargin] = useState(savedState?.profitMargin || "30");
+  const [printPerSheet, setPrintPerSheet] = useState(savedState?.printPerSheet || 0);
   const [validationError, setValidationError] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(savedState?.showPreview || false);
   const [isLayoutDetailsOpen, setIsLayoutDetailsOpen] = useState(false);
   const [bypassLayoutValidation, setBypassLayoutValidation] = useState(false);
-  const [cutsPerSheet, setCutsPerSheet] = useState(1); // Added cuts per sheet
+  const [cutsPerSheet, setCutsPerSheet] = useState(savedState?.cutsPerSheet || 1);
+
+  // ข้อมูลที่ถูกเลือกเกี่ยวกับกระดาษ
+  const [selectedPaperSize, setSelectedPaperSize] = useState<{ width: number; height: number } | null>(
+    savedState?.selectedPaperSize || null
+  );
 
   // Results
   const [results, setResults] = useState<any[]>([]);
   const [breakdowns, setBreakdowns] = useState<any[]>([]);
   const [selectedQuantityIndex, setSelectedQuantityIndex] = useState(0);
-  const [selectedPaperSize, setSelectedPaperSize] = useState<{ width: number; height: number } | null>(null);
+
+  // สร้างฟังก์ชัน wrapper สำหรับ setters ที่จะบันทึกค่าลง localStorage ด้วย
+  const updateAndSave = (setter: Function) => (value: any) => {
+    setter(value);
+    // บันทึกค่าใหม่ลง localStorage หลังจาก state update
+    setTimeout(() => {
+      const currentState = {
+        jobType,
+        paperType,
+        paperGrammage,
+        supplier,
+        width,
+        height,
+        sizeUnit,
+        colors,
+        selectedCoating,
+        coatingCost,
+        quantities,
+        wastage,
+        hasDieCut,
+        dieCutCost,
+        hasBasePrint,
+        basePrintCost,
+        shippingCost,
+        packagingCost,
+        profitMargin,
+        printPerSheet,
+        showPreview,
+        cutsPerSheet,
+        selectedPaperSize
+      };
+      saveStateToLocalStorage(currentState);
+    }, 0);
+  };
+
+  // สร้าง wrapped setters ที่จะบันทึกค่าลง localStorage
+  const setJobTypeAndSave = updateAndSave(setJobType);
+  const setPaperTypeAndSave = updateAndSave(setPaperType);
+  const setPaperGrammageAndSave = updateAndSave(setPaperGrammage);
+  const setSupplierAndSave = updateAndSave(setSupplier);
+  const setWidthAndSave = updateAndSave(setWidth);
+  const setHeightAndSave = updateAndSave(setHeight);
+  const setSizeUnitAndSave = updateAndSave(setSizeUnit);
+  const setColorsAndSave = updateAndSave(setColors);
+  const setSelectedCoatingAndSave = updateAndSave(setSelectedCoating);
+  const setCoatingCostAndSave = updateAndSave(setCoatingCost);
+  const setWastageAndSave = updateAndSave(setWastage);
+  const setHasDieCutAndSave = updateAndSave(setHasDieCut);
+  const setDieCutCostAndSave = updateAndSave(setDieCutCost);
+  const setHasBasePrintAndSave = updateAndSave(setHasBasePrint);
+  const setBasePrintCostAndSave = updateAndSave(setBasePrintCost);
+  const setShippingCostAndSave = updateAndSave(setShippingCost);
+  const setPackagingCostAndSave = updateAndSave(setPackagingCost);
+  const setProfitMarginAndSave = updateAndSave(setProfitMargin);
+  const setCutsPerSheetAndSave = updateAndSave(setCutsPerSheet);
+  const setSelectedPaperSizeAndSave = updateAndSave(setSelectedPaperSize);
+
+  // ฟังก์ชันพิเศษสำหรับ quantities เนื่องจากมีรูปแบบการอัพเดทที่ซับซ้อนกว่า
+  const addQuantity = () => {
+    if (quantities.length < 3) {
+      const newQuantities = [...quantities, ""];
+      setQuantities(newQuantities);
+      updateAndSave(setQuantities)(newQuantities);
+    }
+  };
+
+  const removeQuantity = (index: number) => {
+    if (quantities.length > 1) {
+      const newQuantities = [...quantities];
+      newQuantities.splice(index, 1);
+      setQuantities(newQuantities);
+      updateAndSave(setQuantities)(newQuantities);
+      if (selectedQuantityIndex >= newQuantities.length) {
+        setSelectedQuantityIndex(newQuantities.length - 1);
+      }
+    }
+  };
+
+  const updateQuantity = (index: number, value: string) => {
+    const newQuantities = [...quantities];
+    newQuantities[index] = value;
+    setQuantities(newQuantities);
+    updateAndSave(setQuantities)(newQuantities);
+  };
 
   // Data fetching
   const { data: paperTypes } = useQuery({
@@ -98,17 +212,19 @@ export const usePrintCalculation = () => {
     console.log("Available paper sizes:", paperSizes);
     
     if (paperType && paperSizes && paperSizes.length > 0) {
-      // Default to the first paper size
-      const newSelectedSize = {
-        width: paperSizes[0].width,
-        height: paperSizes[0].height
-      };
-      
-      console.log("Setting selected paper size to:", newSelectedSize);
-      setSelectedPaperSize(newSelectedSize);
-      
-      // Always show preview when paper size is available
-      setShowPreview(true);
+      // Default to the first paper size if no saved size exists
+      if (!selectedPaperSize) {
+        const newSelectedSize = {
+          width: paperSizes[0].width,
+          height: paperSizes[0].height
+        };
+        
+        console.log("Setting selected paper size to:", newSelectedSize);
+        setSelectedPaperSizeAndSave(newSelectedSize);
+        
+        // Always show preview when paper size is available
+        setShowPreview(true);
+      }
       
       // Clear any validation errors related to paper selection
       if (validationError && (
@@ -121,13 +237,13 @@ export const usePrintCalculation = () => {
       // If we don't have paper sizes yet but have a paper type, don't clear the selected size
       if (!paperSizes || paperSizes.length === 0) {
         console.log("No paper sizes available yet for paper type:", paperType);
-      } else {
+      } else if (!selectedPaperSize) {
         console.log("No paper size available, clearing selected paper size");
-        setSelectedPaperSize(null);
+        setSelectedPaperSizeAndSave(null);
         setShowPreview(false);
       }
     }
-  }, [paperType, paperSizes, validationError]);
+  }, [paperType, paperSizes, validationError, selectedPaperSize]);
 
   // Add separate effect for updating layout preview when dimensions change
   useEffect(() => {
@@ -177,6 +293,9 @@ export const usePrintCalculation = () => {
         console.log("Auto-calculated layout result:", result);
         setPrintPerSheet(result.printPerSheet);
         
+        // บันทึกค่า printPerSheet ลง localStorage
+        updateAndSave(setPrintPerSheet)(result.printPerSheet);
+        
         // If layout can be calculated, clear related validation errors
         if (result.printPerSheet > 0 && validationError && (
           validationError.includes("การจัดวาง") || 
@@ -192,6 +311,10 @@ export const usePrintCalculation = () => {
   const handleLayoutChange = useCallback((perSheet: number) => {
     console.log("Layout changed, printPerSheet:", perSheet);
     setPrintPerSheet(perSheet);
+    
+    // บันทึกค่า printPerSheet ลง localStorage
+    updateAndSave(setPrintPerSheet)(perSheet);
+    
     setBypassLayoutValidation(true);
     
     // Clear validation errors related to layout when we get a valid count
@@ -669,8 +792,10 @@ export const usePrintCalculation = () => {
     // Use the better layout
     if (normalLayout.printPerSheet >= rotatedLayout.printPerSheet) {
       setPrintPerSheet(normalLayout.printPerSheet);
+      updateAndSave(setPrintPerSheet)(normalLayout.printPerSheet);
     } else {
       setPrintPerSheet(rotatedLayout.printPerSheet);
+      updateAndSave(setPrintPerSheet)(rotatedLayout.printPerSheet);
     }
     
     // Enable bypass for validation to allow calculation even with small printPerSheet
@@ -679,37 +804,37 @@ export const usePrintCalculation = () => {
 
   return {
     // Form state
-    jobType, setJobType,
-    paperType, setPaperType,
-    paperGrammage, setPaperGrammage,
-    supplier, setSupplier,
-    width, setWidth,
-    height, setHeight,
-    sizeUnit, setSizeUnit,
-    colors, setColors,
-    selectedCoating, setSelectedCoating,
-    coatingCost, setCoatingCost,
+    jobType, setJobType: setJobTypeAndSave,
+    paperType, setPaperType: setPaperTypeAndSave,
+    paperGrammage, setPaperGrammage: setPaperGrammageAndSave,
+    supplier, setSupplier: setSupplierAndSave,
+    width, setWidth: setWidthAndSave,
+    height, setHeight: setHeightAndSave,
+    sizeUnit, setSizeUnit: setSizeUnitAndSave,
+    colors, setColors: setColorsAndSave,
+    selectedCoating, setSelectedCoating: setSelectedCoatingAndSave,
+    coatingCost, setCoatingCost: setCoatingCostAndSave,
     quantities, setQuantities, addQuantity, removeQuantity, updateQuantity,
-    wastage, setWastage,
-    hasDieCut, setHasDieCut,
-    dieCutCost, setDieCutCost,
-    hasBasePrint, setHasBasePrint,
-    basePrintCost, setBasePrintCost,
-    shippingCost, setShippingCost,
-    packagingCost, setPackagingCost,
-    profitMargin, setProfitMargin,
+    wastage, setWastage: setWastageAndSave,
+    hasDieCut, setHasDieCut: setHasDieCutAndSave,
+    dieCutCost, setDieCutCost: setDieCutCostAndSave,
+    hasBasePrint, setHasBasePrint: setHasBasePrintAndSave,
+    basePrintCost, setBasePrintCost: setBasePrintCostAndSave,
+    shippingCost, setShippingCost: setShippingCostAndSave,
+    packagingCost, setPackagingCost: setPackagingCostAndSave,
+    profitMargin, setProfitMargin: setProfitMarginAndSave,
     printPerSheet, setPrintPerSheet,
     validationError, setValidationError,
     showPreview, setShowPreview,
     isLayoutDetailsOpen, setIsLayoutDetailsOpen,
     bypassLayoutValidation, setBypassLayoutValidation,
-    cutsPerSheet, setCutsPerSheet, // Added to return
+    cutsPerSheet, setCutsPerSheet: setCutsPerSheetAndSave,
     
     // Results
     results, setResults,
     breakdowns, setBreakdowns,
     selectedQuantityIndex, setSelectedQuantityIndex,
-    selectedPaperSize, setSelectedPaperSize,
+    selectedPaperSize, setSelectedPaperSize: setSelectedPaperSizeAndSave,
     
     // Data
     paperTypes,
