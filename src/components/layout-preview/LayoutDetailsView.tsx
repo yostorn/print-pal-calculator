@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -207,7 +208,7 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
               <SelectContent>
                 {paperSizes?.map((size) => (
                   <SelectItem key={size.id} value={size.id}>
-                    {size.name} ({size.width}" × {size.height"})
+                    {size.name} ({size.width}" × {size.height}")
                   </SelectItem>
                 ))}
               </SelectContent>
