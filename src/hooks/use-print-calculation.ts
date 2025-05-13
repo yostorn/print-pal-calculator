@@ -248,17 +248,23 @@ export const usePrintCalculation = () => {
   };
 
   // Get paper price from database or fall back to the hardcoded values
-  const getPaperPrice = async (paperTypeVal: string, paperGrammageVal: string, supplierVal: string) => {
+  const getPaperPrice = async (paperTypeId: string, paperGrammageId: string, supplierId: string) => {
+    console.log("Getting paper price for:", { paperTypeId, paperGrammageId, supplierId });
+    
     // Try to get from database first
-    if (paperType && paperGrammage && supplier) {
+    if (paperTypeId && paperGrammageId && supplierId) {
       try {
-        const priceData = await fetchPaperPrice(paperTypeVal, paperGrammageVal, supplierVal);
+        const priceData = await fetchPaperPrice(paperTypeId, paperGrammageId, supplierId);
         if (priceData) {
+          console.log("Found paper price in database:", priceData.price_per_kg);
           return priceData.price_per_kg;
         }
+        console.log("No paper price found in database, falling back to hardcoded values");
       } catch (error) {
         console.error("Error fetching paper price:", error);
       }
+    } else {
+      console.log("Missing required IDs for paper price lookup");
     }
     
     // Fall back to hardcoded paper data if database fetch fails
@@ -298,7 +304,71 @@ export const usePrintCalculation = () => {
       }
     };
     
-    return paperData[paperTypeVal as keyof typeof paperData]?.prices[paperGrammageVal as keyof typeof paperData[keyof typeof paperData]["prices"]]?.[supplierVal as keyof typeof paperData[keyof typeof paperData]["prices"][keyof typeof paperData[keyof typeof paperData]["prices"]]] || 0;
+    // Try to get paper type, grammage, and supplier name for fallback logic
+    let paperTypeName = "";
+    let paperGrammageValue = "";
+    let supplierName = "";
+    
+    try {
+      // Fetch the paper type name for the ID
+      const paperTypeResponse = await supabase
+        .from('paper_types')
+        .select('name')
+        .eq('id', paperTypeId)
+        .single();
+        
+      if (paperTypeResponse.data) {
+        paperTypeName = paperTypeResponse.data.name;
+      }
+      
+      // Fetch the grammage value for the ID
+      const grammageResponse = await supabase
+        .from('paper_grammages')
+        .select('grammage')
+        .eq('id', paperGrammageId)
+        .single();
+        
+      if (grammageResponse.data) {
+        paperGrammageValue = grammageResponse.data.grammage;
+      }
+      
+      // Fetch the supplier name for the ID
+      const supplierResponse = await supabase
+        .from('suppliers')
+        .select('name')
+        .eq('id', supplierId)
+        .single();
+        
+      if (supplierResponse.data) {
+        supplierName = supplierResponse.data.name;
+      }
+      
+      console.log("Fallback lookup using:", {
+        paperTypeName,
+        paperGrammageValue,
+        supplierName
+      });
+      
+      // Check if we can use the hardcoded values
+      if (paperTypeName && paperGrammageValue && supplierName) {
+        const typePrices = paperData[paperTypeName as keyof typeof paperData]?.prices;
+        if (typePrices) {
+          const grammPrices = typePrices[paperGrammageValue as keyof typeof typePrices];
+          if (grammPrices) {
+            const price = grammPrices[supplierName as keyof typeof grammPrices];
+            if (price) {
+              console.log("Found price in hardcoded data:", price);
+              return price;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in fallback price lookup:", error);
+    }
+    
+    console.log("No paper price found, returning default of 50");
+    return 50; // Default price if nothing found
   };
 
   // Get plate cost from database or fall back to hardcoded values
@@ -435,7 +505,7 @@ export const usePrintCalculation = () => {
         
         const qtyNum = parseInt(quantity);
         
-        // Get paper price 
+        // Get paper price with actual IDs
         const paperPricePerKg = await getPaperPrice(paperType, paperGrammage, supplier);
         console.log("Paper price per kg:", paperPricePerKg);
         

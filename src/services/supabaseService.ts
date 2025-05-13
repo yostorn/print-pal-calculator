@@ -70,8 +70,10 @@ export const fetchSuppliers = async () => {
   return data;
 };
 
-// Paper Prices
+// Paper Prices - Modified to log more details for debugging
 export const fetchPaperPrice = async (paperTypeId: string, grammageId: string, supplierId: string) => {
+  console.log("Fetching paper price with params:", { paperTypeId, grammageId, supplierId });
+  
   const { data, error } = await supabase
     .from('paper_prices')
     .select('*')
@@ -80,7 +82,12 @@ export const fetchPaperPrice = async (paperTypeId: string, grammageId: string, s
     .eq('supplier_id', supplierId)
     .maybeSingle();
   
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
+  if (error && error.code !== 'PGRST116') { 
+    console.error("Error fetching paper price:", error);
+    throw error; 
+  }
+  
+  console.log("Paper price result:", data);
   return data;
 };
 
