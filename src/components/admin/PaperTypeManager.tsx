@@ -77,8 +77,25 @@ const PaperTypeManager = () => {
         setEditMode(false);
         setEditId("");
       } else {
-        // Add new paper type
-        const newId = newPaperType.name.toLowerCase().replace(/\s+/g, '-');
+        // Generate a safe ID based on the name - using only lowercase letters, numbers and hyphens
+        const newId = newPaperType.name.toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-')    // Replace spaces with hyphens
+          .replace(/[^\w\-]+/g, '') // Remove all non-word chars (except hyphens)
+          .replace(/\-\-+/g, '-')   // Replace multiple hyphens with single hyphen
+          .replace(/^-+/, '')       // Trim hyphens from start
+          .replace(/-+$/, '');      // Trim hyphens from end
+        
+        // Check if ID already exists
+        const existingType = paperTypes.find(type => type.id === newId);
+        if (existingType) {
+          toast({
+            title: "ชื่อซ้ำ",
+            description: "มีประเภทกระดาษนี้อยู่แล้ว กรุณาใช้ชื่ออื่น"
+          });
+          setLoading(false);
+          return;
+        }
         
         const { data, error } = await supabase
           .from('paper_types')

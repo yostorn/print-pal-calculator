@@ -1,12 +1,15 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPaperTypes, fetchPaperGrammages } from "@/services/supabaseService";
 
 interface Supplier {
   id: string;
@@ -16,31 +19,22 @@ interface Supplier {
   pricePerKg: number;
 }
 
+interface PaperType {
+  id: string;
+  name: string;
+  label: string;
+}
+
+interface PaperGrammage {
+  id: string;
+  grammage: string;
+  label: string;
+  paper_type_id: string;
+}
+
 const SupplierManager = () => {
   const { toast } = useToast();
-  const [paperTypes] = useState([
-    { id: "art-card", label: "Art Card" },
-    { id: "art-paper", label: "Art Paper" },
-    { id: "woodfree", label: "Woodfree" },
-    { id: "newsprint", label: "Newsprint" }
-  ]);
-
-  const [paperGrammages, setPaperGrammages] = useState({
-    "art-card": ["210", "230", "250", "300"],
-    "art-paper": ["80", "90", "100", "120", "130", "150"],
-    "woodfree": ["70", "80", "90", "100"],
-    "newsprint": ["45", "48", "52"]
-  });
-  
-  const [suppliers, setSuppliers] = useState<Supplier[]>([
-    { id: "1", paperType: "art-card", paperGrammage: "210", name: "Supplier A", pricePerKg: 85 },
-    { id: "2", paperType: "art-card", paperGrammage: "210", name: "Supplier B", pricePerKg: 87 },
-    { id: "3", paperType: "art-card", paperGrammage: "210", name: "Supplier C", pricePerKg: 86 },
-    { id: "4", paperType: "art-paper", paperGrammage: "80", name: "Supplier D", pricePerKg: 47 },
-    { id: "5", paperType: "art-paper", paperGrammage: "80", name: "Supplier E", pricePerKg: 46 },
-    { id: "6", paperType: "woodfree", paperGrammage: "70", name: "Supplier F", pricePerKg: 39 }
-  ]);
-  
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [newSupplier, setNewSupplier] = useState<Omit<Supplier, 'id'>>({
     paperType: "",
     paperGrammage: "",
@@ -52,8 +46,68 @@ const SupplierManager = () => {
   const [editId, setEditId] = useState("");
   const [selectedPaperType, setSelectedPaperType] = useState<string | null>(null);
   const [selectedPaperGrammage, setSelectedPaperGrammage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  const handleAddOrUpdate = () => {
+  // Fetch paper types
+  const { data: paperTypes = [] } = useQuery({
+    queryKey: ['paperTypes'],
+    queryFn: fetchPaperTypes
+  });
+
+  // Fetch paper grammages for the selected paper type
+  const { data: paperGrammages = [] } = useQuery({
+    queryKey: ['paperGrammages', newSupplier.paperType],
+    queryFn: () => fetchPaperGrammages(newSupplier.paperType),
+    enabled: !!newSupplier.paperType
+  });
+
+  // Load suppliers from Supabase
+  const loadSuppliers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('paper_prices')
+        .select(`
+          id,
+          price_per_kg,
+          paper_type_id,
+          paper_grammage_id,
+          supplier_id,
+          suppliers:supplier_id(id, name)
+        `)
+        .order('price_per_kg');
+      
+      if (error) throw error;
+
+      if (data) {
+        // Transform data to match our supplier interface
+        const formattedSuppliers = data.map(item => ({
+          id: item.id,
+          paperType: item.paper_type_id || "",
+          paperGrammage: item.paper_grammage_id || "",
+          name: item.suppliers ? (item.suppliers as any).name : "",
+          pricePerKg: item.price_per_kg
+        }));
+        
+        setSuppliers(formattedSuppliers);
+      }
+      
+      setIsInitialLoading(false);
+    } catch (error) {
+      console.error("Error loading suppliers:", error);
+      toast({
+        title: "ไม่สามารถโหลดข้อมูลซัพพลายเออร์ได้",
+        description: "กรุณาลองอีกครั้งในภายหลัง"
+      });
+      setIsInitialLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSuppliers();
+  }, []);
+
+  const handleAddOrUpdate = async () => {
     if (!newSupplier.paperType || !newSupplier.paperGrammage || !newSupplier.name || newSupplier.pricePerKg <= 0) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
@@ -62,31 +116,131 @@ const SupplierManager = () => {
       return;
     }
 
-    if (editMode) {
-      setSuppliers(suppliers.map(supplier => 
-        supplier.id === editId ? { ...supplier, ...newSupplier } : supplier
-      ));
+    setLoading(true);
+
+    try {
+      // Check if supplier exists or create a new one
+      let supplierId = "";
+      const { data: existingSuppliers, error: supplierError } = await supabase
+        .from('suppliers')
+        .select('id')
+        .eq('name', newSupplier.name)
+        .limit(1);
+
+      if (supplierError) throw supplierError;
+
+      if (existingSuppliers && existingSuppliers.length > 0) {
+        supplierId = existingSuppliers[0].id;
+      } else {
+        // Create new supplier
+        const { data: newSupplierData, error: newSupplierError } = await supabase
+          .from('suppliers')
+          .insert({ name: newSupplier.name })
+          .select('id')
+          .single();
+
+        if (newSupplierError) throw newSupplierError;
+        supplierId = newSupplierData.id;
+      }
+
+      if (editMode) {
+        // Update existing price
+        const { error: updateError } = await supabase
+          .from('paper_prices')
+          .update({ 
+            paper_type_id: newSupplier.paperType,
+            paper_grammage_id: newSupplier.paperGrammage,
+            supplier_id: supplierId,
+            price_per_kg: newSupplier.pricePerKg
+          })
+          .eq('id', editId);
+
+        if (updateError) throw updateError;
+        
+        // Update local state
+        setSuppliers(suppliers.map(supplier => 
+          supplier.id === editId ? { 
+            ...supplier, 
+            paperType: newSupplier.paperType,
+            paperGrammage: newSupplier.paperGrammage,
+            name: newSupplier.name,
+            pricePerKg: newSupplier.pricePerKg 
+          } : supplier
+        ));
+        
+        toast({
+          title: "แก้ไขข้อมูลราคากระดาษเรียบร้อย",
+          description: `ราคากระดาษของ "${newSupplier.name}" ถูกอัปเดตแล้ว`
+        });
+        
+        setEditMode(false);
+        setEditId("");
+      } else {
+        // Check if this combination already exists
+        const { data: existingPrices, error: checkError } = await supabase
+          .from('paper_prices')
+          .select('id')
+          .eq('paper_type_id', newSupplier.paperType)
+          .eq('paper_grammage_id', newSupplier.paperGrammage)
+          .eq('supplier_id', supplierId)
+          .limit(1);
+          
+        if (checkError) throw checkError;
+        
+        if (existingPrices && existingPrices.length > 0) {
+          toast({
+            title: "ข้อมูลซ้ำ",
+            description: "มีข้อมูลราคากระดาษนี้อยู่แล้ว กรุณาแก้ไขข้อมูลที่มีอยู่แทน"
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // Add new price
+        const { data: newPrice, error: insertError } = await supabase
+          .from('paper_prices')
+          .insert({
+            paper_type_id: newSupplier.paperType,
+            paper_grammage_id: newSupplier.paperGrammage,
+            supplier_id: supplierId,
+            price_per_kg: newSupplier.pricePerKg
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        
+        // Add to local state
+        const newSupplierEntry: Supplier = {
+          id: newPrice.id,
+          paperType: newPrice.paper_type_id || "",
+          paperGrammage: newPrice.paper_grammage_id || "",
+          name: newSupplier.name,
+          pricePerKg: newPrice.price_per_kg
+        };
+        
+        setSuppliers([...suppliers, newSupplierEntry]);
+        
+        toast({
+          title: "เพิ่มข้อมูลราคากระดาษเรียบร้อย",
+          description: `ราคากระดาษของ "${newSupplier.name}" ถูกเพิ่มแล้ว`
+        });
+      }
+    } catch (error: any) {
+      console.error("Error saving supplier data:", error);
       toast({
-        title: "แก้ไขซัพพลายเออร์เรียบร้อย",
-        description: `ซัพพลายเออร์ "${newSupplier.name}" ถูกอัปเดตแล้ว`
+        title: "เกิดข้อผิดพลาด",
+        description: error.message || "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองอีกครั้ง"
       });
-      setEditMode(false);
-      setEditId("");
-    } else {
-      const newId = (suppliers.length + 1).toString();
-      setSuppliers([...suppliers, { id: newId, ...newSupplier }]);
-      toast({
-        title: "เพิ่มซัพพลายเออร์เรียบร้อย",
-        description: `ซัพพลายเออร์ "${newSupplier.name}" ถูกเพิ่มแล้ว`
+    } finally {
+      setLoading(false);
+      setNewSupplier({
+        paperType: "",
+        paperGrammage: "",
+        name: "",
+        pricePerKg: 0
       });
     }
-    
-    setNewSupplier({
-      paperType: "",
-      paperGrammage: "",
-      name: "",
-      pricePerKg: 0
-    });
   };
 
   const handleEdit = (supplier: Supplier) => {
@@ -100,12 +254,34 @@ const SupplierManager = () => {
     setEditId(supplier.id);
   };
 
-  const handleDelete = (id: string) => {
-    setSuppliers(suppliers.filter(supplier => supplier.id !== id));
-    toast({
-      title: "ลบซัพพลายเออร์เรียบร้อย",
-      description: "ซัพพลายเออร์ถูกลบออกจากระบบแล้ว"
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('paper_prices')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      setSuppliers(suppliers.filter(supplier => supplier.id !== id));
+      
+      toast({
+        title: "ลบข้อมูลราคากระดาษเรียบร้อย",
+        description: "ข้อมูลราคากระดาษถูกลบออกจากระบบแล้ว"
+      });
+    } catch (error: any) {
+      console.error("Error deleting supplier data:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: error.message || "ไม่สามารถลบข้อมูลได้ กรุณาลองอีกครั้ง"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Filter suppliers based on selections
@@ -118,7 +294,20 @@ const SupplierManager = () => {
   }
 
   // Get available grammages for the selected paper type
-  const availableGrammages = newSupplier.paperType ? paperGrammages[newSupplier.paperType as keyof typeof paperGrammages] || [] : [];
+  const availableGrammages = paperGrammages.filter(
+    grammage => grammage.paper_type_id === newSupplier.paperType
+  );
+
+  if (isInitialLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 flex items-center justify-center min-h-[300px]">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          <span className="ml-2">กำลังโหลดข้อมูล...</span>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -156,7 +345,7 @@ const SupplierManager = () => {
               </SelectTrigger>
               <SelectContent>
                 {availableGrammages.map((gram) => (
-                  <SelectItem key={gram} value={gram}>{gram} gsm</SelectItem>
+                  <SelectItem key={gram.id} value={gram.id}>{gram.grammage} gsm</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -165,6 +354,7 @@ const SupplierManager = () => {
               placeholder="ชื่อซัพพลายเออร์" 
               value={newSupplier.name} 
               onChange={(e) => setNewSupplier({...newSupplier, name: e.target.value})}
+              disabled={loading}
             />
             
             <Input 
@@ -177,10 +367,15 @@ const SupplierManager = () => {
                 ...newSupplier, 
                 pricePerKg: parseFloat(e.target.value) || 0
               })}
+              disabled={loading}
             />
             
-            <Button onClick={handleAddOrUpdate}>
-              {editMode ? "อัปเดต" : "เพิ่ม"}
+            <Button onClick={handleAddOrUpdate} disabled={loading}>
+              {loading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> กำลังบันทึก...</>
+              ) : (
+                <>{editMode ? "อัปเดต" : "เพิ่ม"}</>
+              )}
             </Button>
           </div>
 
@@ -210,9 +405,11 @@ const SupplierManager = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทั้งหมด</SelectItem>
-                {selectedPaperType && paperGrammages[selectedPaperType as keyof typeof paperGrammages]?.map((gram) => (
-                  <SelectItem key={gram} value={gram}>{gram} gsm</SelectItem>
-                ))}
+                {selectedPaperType && paperGrammages
+                  .filter(gram => gram.paper_type_id === selectedPaperType)
+                  .map((gram) => (
+                    <SelectItem key={gram.id} value={gram.id}>{gram.grammage} gsm</SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -229,26 +426,37 @@ const SupplierManager = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSuppliers.map((supplier) => (
-              <TableRow key={supplier.id}>
-                <TableCell>
-                  {paperTypes.find(type => type.id === supplier.paperType)?.label || supplier.paperType}
-                </TableCell>
-                <TableCell>{supplier.paperGrammage} gsm</TableCell>
-                <TableCell>{supplier.name}</TableCell>
-                <TableCell>{supplier.pricePerKg}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleEdit(supplier)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleDelete(supplier.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {filteredSuppliers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  ยังไม่มีข้อมูลราคากระดาษ
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredSuppliers.map((supplier) => {
+                const paperType = paperTypes.find(type => type.id === supplier.paperType);
+                const paperGrammage = paperGrammages.find(gram => gram.id === supplier.paperGrammage);
+                
+                return (
+                  <TableRow key={supplier.id}>
+                    <TableCell>{paperType?.label || supplier.paperType}</TableCell>
+                    <TableCell>{paperGrammage?.grammage ? `${paperGrammage.grammage} gsm` : supplier.paperGrammage}</TableCell>
+                    <TableCell>{supplier.name}</TableCell>
+                    <TableCell>{supplier.pricePerKg}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="icon" onClick={() => handleEdit(supplier)} disabled={loading}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => handleDelete(supplier.id)} disabled={loading}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </CardContent>
