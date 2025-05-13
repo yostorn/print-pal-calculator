@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -51,6 +50,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
 
   const renderCalculationBreakdown = (result: any, breakdown?: any) => {
     if (!breakdown) return null;
+    
+    // คำนวณค่ากระดาษรวมจากราคากระดาษต่อแผ่น x จำนวนกระดาษทั้งหมด
+    const totalPaperCost = breakdown.sheetCost * breakdown.totalSheets;
 
     return (
       <div className="space-y-2 text-sm p-1">
@@ -90,7 +92,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">ค่ากระดาษทั้งหมด:</span>
-                <span>{formatCurrency(breakdown.paperCost || 0)}</span>
+                <span>{formatCurrency(totalPaperCost || 0)}</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">ประเภทเพลท:</span>

@@ -49,6 +49,9 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
   // Get the selected breakdown using the index
   const breakdown = breakdowns[selectedQuantityIndex];
 
+  // ราคากระดาษต่อแผ่น * จำนวนกระดาษทั้งหมด
+  const totalPaperCost = breakdown.sheetCost * breakdown.totalSheets;
+
   return (
     <div className="space-y-6">
       <h3 className="font-medium text-lg">รายละเอียดการคำนวณ</h3>
@@ -105,7 +108,7 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
             
             <div className="pt-1 border-t border-blue-200 font-medium">
               <p className="text-blue-800">ค่ากระดาษรวม:</p>
-              <p className="text-lg">{formatCurrency(breakdown.paperCost)}</p>
+              <p className="text-lg">{formatCurrency(totalPaperCost)}</p>
             </div>
           </div>
         </CardContent>
@@ -124,7 +127,7 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
           </TableRow>
           <TableRow>
             <TableCell className="font-medium">ค่ากระดาษทั้งหมด:</TableCell>
-            <TableCell>{formatCurrency(breakdown.paperCost)}</TableCell>
+            <TableCell>{formatCurrency(totalPaperCost)}</TableCell>
           </TableRow>
           <TableRow>
             <TableCell className="font-medium">ค่าหมึก:</TableCell>
