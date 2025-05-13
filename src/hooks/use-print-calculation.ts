@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -343,32 +344,6 @@ export const usePrintCalculation = () => {
     // Bypass layout validation when user opens layout details
     setBypassLayoutValidation(true);
     setIsLayoutDetailsOpen(true);
-  };
-
-  // Add quantity field
-  const addQuantity = () => {
-    if (quantities.length < 3) {
-      setQuantities([...quantities, ""]);
-    }
-  };
-
-  // Remove quantity field
-  const removeQuantity = (index: number) => {
-    if (quantities.length > 1) {
-      const newQuantities = [...quantities];
-      newQuantities.splice(index, 1);
-      setQuantities(newQuantities);
-      if (selectedQuantityIndex >= newQuantities.length) {
-        setSelectedQuantityIndex(newQuantities.length - 1);
-      }
-    }
-  };
-
-  // Update quantity value
-  const updateQuantity = (index: number, value: string) => {
-    const newQuantities = [...quantities];
-    newQuantities[index] = value;
-    setQuantities(newQuantities);
   };
 
   // Get paper price from database or fall back to the hardcoded values
