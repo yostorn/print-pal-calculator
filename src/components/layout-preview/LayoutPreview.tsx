@@ -479,7 +479,7 @@ const LayoutPreview: React.FC<LayoutPreviewProps> = ({
           onApplyCustomSize={handleApplyCustomSize}
           onResetSize={handleResetSize}
           cutsPerSheet={localCutsPerSheet}
-          onCutsPerSheetChange={handleCutsPerSheetChange}
+          onCutsPerSheetChange={setLocalCutsPerSheet} // Fixed: Now passing the setState function directly
         />
       </CardContent>
     </Card>

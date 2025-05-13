@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -125,7 +124,7 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
     }
   };
   
-  // Handle cuts per sheet change
+  // Handle cuts per sheet change - Modified to ensure type safety
   const handleCutsPerSheetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 1;
     setLocalCutsPerSheet(value);
