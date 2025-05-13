@@ -43,6 +43,7 @@ export const calculateLayout = (
   const cols = shouldRotate ? landscapeCols : portraitCols;
   const rows = shouldRotate ? landscapeRows : portraitRows;
   
+  // Create layout grid
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       layout.push({
@@ -54,9 +55,20 @@ export const calculateLayout = (
   }
   
   // Calculate waste percentage
-  const usedArea = layout.length * (shouldRotate ? jobWidthInch * jobHeightInch : jobWidthInch * jobHeightInch);
+  const usedArea = layout.length * (jobWidthInch * jobHeightInch);
   const totalArea = paperWidth * paperHeight;
   const wastePercentage = ((totalArea - usedArea) / totalArea) * 100;
+  
+  // Log calculations for debugging the 50-piece issue
+  console.log("Layout calculation:", {
+    paperDimensions: { width: paperWidth, height: paperHeight },
+    jobDimensions: { width: jobWidthInch, height: jobHeightInch },
+    fits: { portrait: { cols: portraitCols, rows: portraitRows, total: portraitPerSheet },
+            landscape: { cols: landscapeCols, rows: landscapeRows, total: landscapePerSheet }},
+    selected: { cols, rows, total: cols * rows, rotated: shouldRotate },
+    layoutItems: layout.length,
+    waste: wastePercentage
+  });
   
   return {
     printPerSheet: cols * rows,

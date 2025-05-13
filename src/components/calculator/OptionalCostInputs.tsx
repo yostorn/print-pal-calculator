@@ -10,6 +10,10 @@ interface OptionalCostInputsProps {
   onDieCutChange: (value: boolean) => void;
   dieCutCost: string;
   onDieCutCostChange: (value: string) => void;
+  hasBasePrint: boolean;
+  onBasePrintChange: (value: boolean) => void;
+  basePrintCost: string;
+  onBasePrintCostChange: (value: string) => void;
   shippingCost: string;
   onShippingCostChange: (value: string) => void;
   packagingCost: string;
@@ -21,6 +25,10 @@ const OptionalCostInputs: React.FC<OptionalCostInputsProps> = ({
   onDieCutChange,
   dieCutCost,
   onDieCutCostChange,
+  hasBasePrint,
+  onBasePrintChange,
+  basePrintCost,
+  onBasePrintCostChange,
   shippingCost,
   onShippingCostChange,
   packagingCost,
@@ -61,6 +69,44 @@ const OptionalCostInputs: React.FC<OptionalCostInputsProps> = ({
             min="0"
             value={dieCutCost}
             onChange={(e) => onDieCutCostChange(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* New base print option */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1">
+          <Label htmlFor="hasBasePrint">มีตีพื้นหรือไม่</Label>
+          <div className="tooltip">
+            <Info className="h-4 w-4 text-gray-400" />
+            <span className="tooltiptext">เลือกหากต้องการตีพื้น</span>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="hasBasePrint"
+            checked={hasBasePrint}
+            onCheckedChange={onBasePrintChange}
+          />
+          <Label htmlFor="hasBasePrint">{hasBasePrint ? "มี" : "ไม่มี"}</Label>
+        </div>
+      </div>
+
+      {hasBasePrint && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1">
+            <Label htmlFor="basePrintCost">ค่าตีพื้น (บาท)</Label>
+            <div className="tooltip">
+              <Info className="h-4 w-4 text-gray-400" />
+              <span className="tooltiptext">ระบุค่าตีพื้น</span>
+            </div>
+          </div>
+          <Input
+            id="basePrintCost"
+            type="number"
+            min="0"
+            value={basePrintCost}
+            onChange={(e) => onBasePrintCostChange(e.target.value)}
           />
         </div>
       )}

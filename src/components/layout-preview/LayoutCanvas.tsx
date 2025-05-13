@@ -36,6 +36,16 @@ const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Log current dimensions for debugging
+    console.log("LayoutCanvas rendering with:", {
+      paperWidth, 
+      paperHeight,
+      jobWidth,
+      jobHeight,
+      rotation,
+      printPerSheet
+    });
+    
     // If paper dimensions aren't set yet or job dimensions aren't set, show placeholder
     if (!paperWidth || !paperHeight || !jobWidth || !jobHeight) {
       ctx.fillStyle = '#f3f4f6';
@@ -70,9 +80,26 @@ const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
     const cols = Math.floor(paperWidth / effectiveJobWidth);
     const rows = Math.floor(paperHeight / effectiveJobHeight);
     
+    // Important: log the actual calculation result
+    console.log("Layout calculation in canvas:", {
+      cols,
+      rows,
+      total: cols * rows,
+      expected: printPerSheet,
+      jobWidthInch,
+      jobHeightInch,
+      effectiveJobWidth,
+      effectiveJobHeight
+    });
+    
+    // Use the actual calculated values for the grid
+    const actualCols = cols;
+    const actualRows = rows;
+    const actualTotal = actualCols * actualRows;
+    
     // Draw job items
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
+    for (let y = 0; y < actualRows; y++) {
+      for (let x = 0; x < actualCols; x++) {
         const rectX = padding + (x * effectiveJobWidth * scale);
         const rectY = padding + (y * effectiveJobHeight * scale);
         const rectWidth = effectiveJobWidth * scale;
@@ -95,7 +122,7 @@ const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
         ctx.font = detailed ? '14px sans-serif' : '12px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(
-          `${y * cols + x + 1}`, 
+          `${y * actualCols + x + 1}`, 
           rectX + rectWidth / 2, 
           rectY + rectHeight / 2
         );

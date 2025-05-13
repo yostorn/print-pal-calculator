@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Info } from "lucide-react";
@@ -18,9 +18,17 @@ const SupplierDropdown: React.FC<SupplierDropdownProps> = ({ value, onChange, pa
     queryKey: ['suppliers'],
     queryFn: fetchSuppliers
   });
+  
+  // When supplier list loads or changes, set a default if none is selected
+  useEffect(() => {
+    if (suppliers && suppliers.length > 0 && !value) {
+      onChange(suppliers[0].id);
+    }
+  }, [suppliers, value, onChange]);
 
   // Debug log
   console.log("Suppliers data:", suppliers);
+  console.log("Current supplier value:", value);
   
   return (
     <div className="space-y-2">

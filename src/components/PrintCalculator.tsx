@@ -157,6 +157,10 @@ const PrintCalculator = () => {
               onDieCutChange={calc.setHasDieCut}
               dieCutCost={calc.dieCutCost}
               onDieCutCostChange={calc.setDieCutCost}
+              hasBasePrint={calc.hasBasePrint}
+              onBasePrintChange={calc.setHasBasePrint}
+              basePrintCost={calc.basePrintCost}
+              onBasePrintCostChange={calc.setBasePrintCost}
               shippingCost={calc.shippingCost}
               onShippingCostChange={calc.setShippingCost}
               packagingCost={calc.packagingCost}

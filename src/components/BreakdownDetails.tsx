@@ -1,118 +1,115 @@
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { formatCurrency } from "@/lib/utils";
 
 interface BreakdownDetailsProps {
-  breakdowns: any[];
-  selectedQuantityIndex: number;
+  breakdown: {
+    plateType: string;
+    plateCost: number;
+    paperCost: number;
+    inkCost: number;
+    basePlateCost: number;
+    totalSheets: number;
+    sheetCost: number;
+    colorNumber: number;
+    hasCoating: boolean;
+    coatingCost: number;
+    coatingType: string;
+    hasDieCut: boolean;
+    dieCutCost: number;
+    hasBasePrint?: boolean;
+    basePrintCost?: number;
+    shippingCost: number;
+    packagingCost: number;
+    profitMargin: number;
+    profit: number;
+    baseCost: number;
+    wastage: number;
+  };
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(value);
-};
-
-const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ breakdowns, selectedQuantityIndex }) => {
-  if (!breakdowns.length || !breakdowns[selectedQuantityIndex]) {
-    return null;
-  }
-
-  const breakdown = breakdowns[selectedQuantityIndex];
-
-  // Map coating type IDs to Thai names for display
-  const getCoatingName = (coatingType: string) => {
-    const coatingNames: Record<string, string> = {
-      "none": "ไม่มีการเคลือบ",
-      "laminate-glossy": "Laminate เงา",
-      "laminate-matte": "Laminate ด้าน",
-      "uv-coating": "เคลือบ UV",
-      "spot-uv": "Spot UV"
-    };
-    return coatingNames[coatingType] || coatingType;
-  };
-
+const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ breakdown }) => {
   return (
-    <Card className="mt-4">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">รายละเอียดการคำนวณ</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="space-y-2">
-          <div className="flex justify-between">
-            <dt className="font-medium">ขนาดเพลท:</dt>
-            <dd>{breakdown.plateType}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="font-medium">ราคาเพลท:</dt>
-            <dd>{formatCurrency(breakdown.basePlateCost)} × {breakdown.colorNumber} สี = {formatCurrency(breakdown.plateCost)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="font-medium">จำนวนแผ่นรวม:</dt>
-            <dd>{breakdown.totalSheets} แผ่น (รวมเผื่อเสีย {breakdown.wastage} แผ่น)</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="font-medium">ราคากระดาษต่อแผ่น:</dt>
-            <dd>{formatCurrency(breakdown.sheetCost)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="font-medium">ราคากระดาษรวม:</dt>
-            <dd>{formatCurrency(breakdown.paperCost)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="font-medium">ค่าหมึก:</dt>
-            <dd>{formatCurrency(breakdown.inkCost)}</dd>
-          </div>
+    <div className="space-y-4">
+      <h3 className="font-medium text-lg">รายละเอียดการคำนวณ</h3>
+      
+      <Table className="border">
+        <TableBody>
+          <TableRow>
+            <TableCell className="font-medium">ขนาดเพลท:</TableCell>
+            <TableCell>{breakdown.plateType}</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell className="font-medium">รวมค่าเพลท ({breakdown.colorNumber} สี):</TableCell>
+            <TableCell>{formatCurrency(breakdown.plateCost)}</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell className="font-medium">ค่ากระดาษทั้งหมด ({breakdown.totalSheets} แผ่น):</TableCell>
+            <TableCell>{formatCurrency(breakdown.paperCost)}</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell className="font-medium">ค่าหมึก:</TableCell>
+            <TableCell>{formatCurrency(breakdown.inkCost)}</TableCell>
+          </TableRow>
           
           {breakdown.hasCoating && (
-            <>
-              <div className="flex justify-between">
-                <dt className="font-medium">ประเภทการเคลือบ:</dt>
-                <dd>{getCoatingName(breakdown.coatingType || "none")}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-medium">ค่าเคลือบ:</dt>
-                <dd>{formatCurrency(breakdown.coatingCost)}</dd>
-              </div>
-            </>
+            <TableRow>
+              <TableCell className="font-medium">
+                ค่าเคลือบ {breakdown.coatingType}:
+              </TableCell>
+              <TableCell>{formatCurrency(breakdown.coatingCost)}</TableCell>
+            </TableRow>
           )}
           
           {breakdown.hasDieCut && (
-            <div className="flex justify-between">
-              <dt className="font-medium">ค่าไดคัท:</dt>
-              <dd>{formatCurrency(breakdown.dieCutCost)}</dd>
-            </div>
+            <TableRow>
+              <TableCell className="font-medium">ค่าไดคัท:</TableCell>
+              <TableCell>{formatCurrency(breakdown.dieCutCost)}</TableCell>
+            </TableRow>
           )}
           
-          {breakdown.shippingCost > 0 && (
-            <div className="flex justify-between">
-              <dt className="font-medium">ค่าขนส่ง:</dt>
-              <dd>{formatCurrency(breakdown.shippingCost)}</dd>
-            </div>
+          {/* Add base print cost row if applicable */}
+          {breakdown.hasBasePrint && (
+            <TableRow>
+              <TableCell className="font-medium">ค่าตีพื้น:</TableCell>
+              <TableCell>{formatCurrency(breakdown.basePrintCost || 0)}</TableCell>
+            </TableRow>
           )}
           
-          {breakdown.packagingCost > 0 && (
-            <div className="flex justify-between">
-              <dt className="font-medium">ค่าแพคกิ้ง:</dt>
-              <dd>{formatCurrency(breakdown.packagingCost)}</dd>
-            </div>
-          )}
+          <TableRow>
+            <TableCell className="font-medium">ค่าขนส่ง:</TableCell>
+            <TableCell>{formatCurrency(breakdown.shippingCost)}</TableCell>
+          </TableRow>
           
-          <div className="border-t pt-2 flex justify-between">
-            <dt className="font-medium">ต้นทุนรวม:</dt>
-            <dd>{formatCurrency(breakdown.baseCost)}</dd>
-          </div>
+          <TableRow>
+            <TableCell className="font-medium">ค่าแพคกิ้ง:</TableCell>
+            <TableCell>{formatCurrency(breakdown.packagingCost)}</TableCell>
+          </TableRow>
           
-          <div className="flex justify-between">
-            <dt className="font-medium">กำไร ({(breakdown.profitMargin * 100).toFixed(0)}%):</dt>
-            <dd>{formatCurrency(breakdown.profit)}</dd>
-          </div>
+          <TableRow className="bg-gray-50">
+            <TableCell className="font-medium">ต้นทุนรวม:</TableCell>
+            <TableCell className="font-medium">{formatCurrency(breakdown.baseCost)}</TableCell>
+          </TableRow>
           
-          <div className="border-t pt-2 flex justify-between text-lg font-bold">
-            <dt>ราคารวมทั้งหมด:</dt>
-            <dd>{formatCurrency(breakdown.baseCost + breakdown.profit)}</dd>
-          </div>
-        </dl>
-      </CardContent>
-    </Card>
+          <TableRow>
+            <TableCell className="font-medium">กำไร ({(breakdown.profitMargin * 100).toFixed(0)}%):</TableCell>
+            <TableCell>{formatCurrency(breakdown.profit)}</TableCell>
+          </TableRow>
+          
+          <TableRow className="bg-blue-50">
+            <TableCell className="font-medium text-blue-800">ราคารวมทั้งหมด:</TableCell>
+            <TableCell className="font-bold text-blue-800">{formatCurrency(breakdown.baseCost + breakdown.profit)}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+      
+      <div className="text-sm text-gray-600 space-y-1">
+        <p>• เผื่อเสีย {breakdown.wastage} แผ่น</p>
+        <p>• ค่าเพลทต่อสี {formatCurrency(breakdown.basePlateCost)}</p>
+        <p>• ค่ากระดาษต่อแผ่น {formatCurrency(breakdown.sheetCost)}</p>
+      </div>
+    </div>
   );
 };
 

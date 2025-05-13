@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,8 @@ export const usePrintCalculation = () => {
   const [wastage, setWastage] = useState("250");
   const [hasDieCut, setHasDieCut] = useState(false);
   const [dieCutCost, setDieCutCost] = useState("0");
+  const [hasBasePrint, setHasBasePrint] = useState(false);
+  const [basePrintCost, setBasePrintCost] = useState("0");
   const [shippingCost, setShippingCost] = useState("0");
   const [packagingCost, setPackagingCost] = useState("0");
   const [profitMargin, setProfitMargin] = useState("30");
@@ -464,6 +467,9 @@ export const usePrintCalculation = () => {
         const inkCostPerSheet = parseInt(colors) * 0.5; // Simplified - 0.5 baht per color per sheet
         const inkCost = totalSheets * inkCostPerSheet;
         
+        // Calculate base print cost if applicable
+        const basePrintCostTotal = hasBasePrint ? parseFloat(basePrintCost || "0") : 0;
+        
         // Calculate die-cut cost if applicable
         const dieCutCostTotal = hasDieCut ? parseFloat(dieCutCost || "0") : 0;
         
@@ -472,7 +478,9 @@ export const usePrintCalculation = () => {
         const packagingCostTotal = parseFloat(packagingCost || "0");
         
         // Calculate total cost before profit
-        const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + dieCutCostTotal + shippingCostTotal + packagingCostTotal;
+        const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + 
+                          basePrintCostTotal + dieCutCostTotal + 
+                          shippingCostTotal + packagingCostTotal;
         
         // Calculate profit margin
         const profitMarginPercent = parseFloat(profitMargin || "0") / 100;
@@ -504,6 +512,8 @@ export const usePrintCalculation = () => {
           coatingType: selectedCoating !== "none" ? selectedCoating : "",
           hasDieCut,
           dieCutCost: dieCutCostTotal,
+          hasBasePrint,
+          basePrintCost: basePrintCostTotal,
           shippingCost: shippingCostTotal,
           packagingCost: packagingCostTotal,
           profitMargin: profitMarginPercent,
@@ -525,7 +535,7 @@ export const usePrintCalculation = () => {
       console.error("Error during calculation:", error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: error instanceof Error ? error.message : "ไม่สา���ารถคำนวณราคาได้",
+        description: error instanceof Error ? error.message : "ไม่สามารถคำนวณราคาได้",
         variant: "destructive"
       });
     }
@@ -590,6 +600,8 @@ export const usePrintCalculation = () => {
     wastage, setWastage,
     hasDieCut, setHasDieCut,
     dieCutCost, setDieCutCost,
+    hasBasePrint, setHasBasePrint,
+    basePrintCost, setBasePrintCost,
     shippingCost, setShippingCost,
     packagingCost, setPackagingCost,
     profitMargin, setProfitMargin,
