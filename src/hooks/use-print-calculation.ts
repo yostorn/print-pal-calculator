@@ -13,7 +13,7 @@ import {
   fetchFormulaSettings
 } from "@/services/supabaseService";
 import { calculateLayout } from "@/utils/layoutCalculations";
-import { calculatePaperUsage } from "@/lib/utils";
+import { calculatePaperUsage, calculatePaperCost } from "@/lib/utils";
 
 // สร้าง helper สำหรับการจัดการ localStorage
 const STORAGE_KEY = "print_calculator_state";
