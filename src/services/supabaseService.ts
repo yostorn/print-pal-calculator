@@ -101,6 +101,60 @@ export const fetchPlateCosts = async () => {
   return data;
 };
 
+// Formula Settings
+export const fetchFormulaSettings = async () => {
+  const { data, error } = await supabase
+    .from('formula_settings')
+    .select('*');
+  
+  if (error) {
+    console.error("Error fetching formula settings:", error);
+    throw error;
+  }
+  
+  // Convert array to object for easier access
+  const settings: Record<string, string> = {};
+  data?.forEach(item => {
+    settings[item.name] = item.value;
+  });
+  
+  return settings;
+};
+
+export const updateFormulaSetting = async (name: string, value: string) => {
+  const { data, error } = await supabase
+    .from('formula_settings')
+    .upsert({ name, value })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error updating formula setting:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
+export const updateFormulaSettings = async (settings: Record<string, string>) => {
+  const upsertData = Object.entries(settings).map(([name, value]) => ({
+    name,
+    value
+  }));
+  
+  const { data, error } = await supabase
+    .from('formula_settings')
+    .upsert(upsertData)
+    .select();
+  
+  if (error) {
+    console.error("Error batch updating formula settings:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
 // Calculation Settings
 export const fetchCalculationSettings = async () => {
   const { data, error } = await supabase

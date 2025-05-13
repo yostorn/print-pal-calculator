@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +9,8 @@ import {
   fetchSuppliers,
   fetchPaperPrice,
   fetchPlateCosts,
-  fetchCalculationSettings
+  fetchCalculationSettings,
+  fetchFormulaSettings
 } from "@/services/supabaseService";
 import { calculateLayout } from "@/utils/layoutCalculations";
 import { calculatePaperUsage } from "@/lib/utils";
@@ -195,6 +195,12 @@ export const usePrintCalculation = () => {
     queryFn: fetchCalculationSettings
   });
 
+  // Fetch formula settings from the database
+  const { data: formulaSettings } = useQuery({
+    queryKey: ['formulaSettings'],
+    queryFn: fetchFormulaSettings
+  });
+
   // Set default values from settings
   useEffect(() => {
     if (settings) {
@@ -205,7 +211,12 @@ export const usePrintCalculation = () => {
         setCoatingCost(settings.default_coating_cost);
       }
     }
-  }, [settings]);
+    
+    // Apply formula settings if available
+    if (formulaSettings && formulaSettings.defaultWastage) {
+      setWastageAndSave(formulaSettings.defaultWastage);
+    }
+  }, [settings, formulaSettings]);
 
   // Update paper size selection when paper type changes
   useEffect(() => {
@@ -573,6 +584,18 @@ export const usePrintCalculation = () => {
     return true;
   };
 
+  // Helper function to evaluate formulas safely
+  const evaluateFormula = (formula: string, variables: Record<string, any>): any => {
+    try {
+      // Create a function that takes only the variables we want to expose
+      const func = new Function(...Object.keys(variables), `return ${formula};`);
+      return func(...Object.values(variables));
+    } catch (error) {
+      console.error("Error evaluating formula:", formula, error);
+      return null;
+    }
+  };
+
   // Calculate results with better error handling and paper cuts
   const calculate = async () => {
     console.log("Starting calculation with values:", {
@@ -622,11 +645,30 @@ export const usePrintCalculation = () => {
         
         console.log("Paper usage calculation:", paperUsage);
         
-        // Determine plate type based on paper size
-        const plateType = selectedPaperSize && 
-          (selectedPaperSize.width > 24 || selectedPaperSize.height > 35) 
-          ? "ตัด 2" 
-          : "ตัด 4";
+        // Determine plate type based on paper size or use formula
+        let plateType = "ตัด 4"; // Default
+        
+        if (formulaSettings && formulaSettings.plateSelection && formulaSettings.useAdvancedFormulas === "true") {
+          try {
+            // Use the formula from settings
+            plateType = evaluateFormula(formulaSettings.plateSelection, { 
+              size: selectedPaperSize 
+            }) || "ตัด 4";
+          } catch (error) {
+            console.error("Error evaluating plate selection formula:", error);
+            // Fallback to standard logic
+            plateType = selectedPaperSize && 
+              (selectedPaperSize.width > 24 || selectedPaperSize.height > 35) 
+              ? "ตัด 2" 
+              : "ตัด 4";
+          }
+        } else {
+          // Use standard logic
+          plateType = selectedPaperSize && 
+            (selectedPaperSize.width > 24 || selectedPaperSize.height > 35) 
+            ? "ตัด 2" 
+            : "ตัด 4";
+        }
         
         // Calculate costs
         const plateCost = getPlateCost(plateType) * parseInt(colors);
@@ -637,20 +679,75 @@ export const usePrintCalculation = () => {
           throw new Error("ไม่มีข้อมูลขนาดกระดาษ");
         }
         
+        // Calculate parameters for the formulas
         const paperAreaSqM = (selectedPaperSize.width * selectedPaperSize.height) / (39.37 * 39.37); // Convert square inches to square meters
         const paperWeightPerSheet = paperAreaSqM * (parseInt(paperGrammage) / 1000); // Weight in kg
-        const sheetCost = paperWeightPerSheet * paperPricePerKg;
         
-        // Use master sheets for cost calculation
-        const paperCost = paperUsage.masterSheetsNeeded * sheetCost;
+        // Get conversion factor from settings or use default
+        const conversionFactor = formulaSettings?.conversionFactor 
+          ? parseInt(formulaSettings.conversionFactor) 
+          : 3100;
+        
+        // Prepare variables for formula evaluation
+        const formulaVariables = {
+          area_sqm: paperAreaSqM,
+          grammage: parseInt(paperGrammage),
+          weight: paperWeightPerSheet,
+          price_per_kg: paperPricePerKg,
+          size: selectedPaperSize,
+          job_size: {
+            width: parseFloat(width),
+            height: parseFloat(height)
+          },
+          quantity: qtyNum,
+          reams: paperUsage.reamsNeeded,
+          sheets: paperUsage.totalSheets,
+          master_sheets: paperUsage.masterSheetsNeeded,
+          ink_colors: parseInt(colors),
+          conversion_factor: conversionFactor,
+          printsPerSheet: printPerSheet,
+          waste: wastageNum
+        };
+        
+        // Calculate paper weight using formula if available
+        let paperWeightFormula = "(area_sqm * grammage / 1000)";
+        if (formulaSettings?.paperWeightFormula && formulaSettings.useAdvancedFormulas === "true") {
+          paperWeightFormula = formulaSettings.paperWeightFormula;
+        }
+        
+        const paperWeight = evaluateFormula(paperWeightFormula, formulaVariables) || paperWeightPerSheet;
+        
+        // Calculate paper cost
+        const sheetCost = paperWeight * paperPricePerKg;
+        
+        // Calculate total paper cost using formula if available
+        let paperCostResult;
+        let paperCostFormula = "(master_sheets * weight * price_per_kg)";
+        
+        if (formulaSettings?.paperCostFormula && formulaSettings.useAdvancedFormulas === "true") {
+          paperCostFormula = formulaSettings.paperCostFormula;
+          paperCostResult = evaluateFormula(paperCostFormula, {
+            ...formulaVariables,
+            weight: paperWeight
+          });
+        } else {
+          // Default calculation
+          paperCostResult = paperUsage.masterSheetsNeeded * paperWeight * paperPricePerKg;
+        }
+        
+        const paperCost = paperCostResult || (paperUsage.masterSheetsNeeded * sheetCost);
         console.log("Paper cost:", paperCost);
         
         // Calculate coating cost if applicable
         const hasCoating = selectedCoating !== "none";
         const coatingCostTotal = hasCoating ? paperUsage.totalSheets * parseFloat(coatingCost || "0") : 0;
         
-        // Calculate ink cost (simplified estimation)
-        const inkCostPerSheet = parseInt(colors) * 0.5; // Simplified - 0.5 baht per color per sheet
+        // Calculate ink cost 
+        const inkCostPerColor = formulaSettings?.inkCostPerColor 
+          ? parseFloat(formulaSettings.inkCostPerColor) 
+          : 0.5;
+        
+        const inkCostPerSheet = parseInt(colors) * inkCostPerColor;
         const inkCost = paperUsage.totalSheets * inkCostPerSheet;
         
         // Calculate base print cost if applicable
@@ -665,8 +762,8 @@ export const usePrintCalculation = () => {
         
         // Calculate total cost before profit
         const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + 
-                          basePrintCostTotal + dieCutCostTotal + 
-                          shippingCostTotal + packagingCostTotal;
+                        basePrintCostTotal + dieCutCostTotal + 
+                        shippingCostTotal + packagingCostTotal;
         
         // Calculate profit margin
         const profitMarginPercent = parseFloat(profitMargin || "0") / 100;
@@ -675,6 +772,25 @@ export const usePrintCalculation = () => {
         // Total cost and per unit cost
         const totalCost = baseCost + profit;
         const unitCost = totalCost / qtyNum;
+        
+        // Store the formula explanations for display
+        const formulaExplanations = {
+          paperWeightFormula: {
+            formula: paperWeightFormula,
+            result: paperWeight,
+            explanation: `พื้นที่กระดาษ ${paperAreaSqM.toFixed(3)} ตร.ม. × แกรม ${paperGrammage} ÷ 1000 = ${paperWeight.toFixed(3)} กก./แผ่น`
+          },
+          paperCostFormula: {
+            formula: paperCostFormula,
+            result: paperCost,
+            explanation: `สูตร: ${paperCostFormula}\nค่าที่ใช้: จำนวนแผ่นมาสเตอร์ ${paperUsage.masterSheetsNeeded} × น้ำหนักต่อแผ่น ${paperWeight.toFixed(3)} กก. × ราคากระดาษ ${paperPricePerKg} บาท/กก. = ${paperCost.toFixed(2)} บาท`
+          },
+          plateTypeFormula: {
+            formula: formulaSettings?.plateSelection || "size.width > 24 || size.height > 35 ? 'ตัด 2' : 'ตัด 4'",
+            result: plateType,
+            explanation: `สำหรับกระดาษขนาด ${selectedPaperSize.width}×${selectedPaperSize.height} นิ้ว ใช้เพลทประเภท ${plateType}`
+          }
+        };
         
         newResults.push({
           totalCost,
@@ -695,6 +811,7 @@ export const usePrintCalculation = () => {
           masterSheetsNeeded: paperUsage.masterSheetsNeeded,
           reamsNeeded: paperUsage.reamsNeeded,
           sheetCost,
+          paperWeight,
           colorNumber: parseInt(colors),
           hasCoating,
           coatingCost: coatingCostTotal,
@@ -710,7 +827,10 @@ export const usePrintCalculation = () => {
           baseCost,
           wastage: wastageNum,
           cutsPerSheet,
-          paperUsage
+          paperUsage,
+          formulaExplanations,
+          conversionFactor,
+          inkCostPerColor
         });
       }
       
