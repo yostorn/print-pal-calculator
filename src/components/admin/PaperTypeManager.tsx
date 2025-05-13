@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,29 +76,11 @@ const PaperTypeManager = () => {
         setEditMode(false);
         setEditId("");
       } else {
-        // Generate a safe ID based on the name - using only lowercase letters, numbers and hyphens
-        const newId = newPaperType.name.toLowerCase()
-          .trim()
-          .replace(/\s+/g, '-')    // Replace spaces with hyphens
-          .replace(/[^\w\-]+/g, '') // Remove all non-word chars (except hyphens)
-          .replace(/\-\-+/g, '-')   // Replace multiple hyphens with single hyphen
-          .replace(/^-+/, '')       // Trim hyphens from start
-          .replace(/-+$/, '');      // Trim hyphens from end
-        
-        // Check if ID already exists
-        const existingType = paperTypes.find(type => type.id === newId);
-        if (existingType) {
-          toast({
-            title: "ชื่อซ้ำ",
-            description: "มีประเภทกระดาษนี้อยู่แล้ว กรุณาใช้ชื่ออื่น"
-          });
-          setLoading(false);
-          return;
-        }
-        
+        // Instead of creating a custom ID, let Supabase generate a UUID
+        // and just provide the name and label fields
         const { data, error } = await supabase
           .from('paper_types')
-          .insert({ id: newId, name: newPaperType.name, label: newPaperType.label })
+          .insert({ name: newPaperType.name, label: newPaperType.label })
           .select();
 
         if (error) throw error;

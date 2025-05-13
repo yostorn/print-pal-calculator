@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,8 @@ interface Supplier {
   paperGrammage: string;
   name: string;
   pricePerKg: number;
+  paperTypeName?: string;  // Added for display purposes
+  paperGrammageName?: string;  // Added for display purposes
 }
 
 interface PaperType {
@@ -62,6 +63,12 @@ const SupplierManager = () => {
     enabled: !!newSupplier.paperType
   });
 
+  // This query gets all grammages for display purposes
+  const { data: allPaperGrammages = [] } = useQuery({
+    queryKey: ['allPaperGrammages'],
+    queryFn: () => fetchPaperGrammages(),
+  });
+
   // Load suppliers from Supabase
   const loadSuppliers = async () => {
     try {
@@ -81,12 +88,22 @@ const SupplierManager = () => {
 
       if (data) {
         // Transform data to match our supplier interface
-        const formattedSuppliers = data.map(item => ({
-          id: item.id,
-          paperType: item.paper_type_id || "",
-          paperGrammage: item.paper_grammage_id || "",
-          name: item.suppliers ? (item.suppliers as any).name : "",
-          pricePerKg: item.price_per_kg
+        const formattedSuppliers = await Promise.all(data.map(async (item) => {
+          // Get paper type details
+          const paperType = paperTypes.find(type => type.id === item.paper_type_id);
+          
+          // Get grammage details - use the allPaperGrammages array
+          const grammage = allPaperGrammages.find(g => g.id === item.paper_grammage_id);
+          
+          return {
+            id: item.id,
+            paperType: item.paper_type_id || "",
+            paperGrammage: item.paper_grammage_id || "",
+            name: item.suppliers ? (item.suppliers as any).name : "",
+            pricePerKg: item.price_per_kg,
+            paperTypeName: paperType?.label || item.paper_type_id || "",
+            paperGrammageName: grammage?.grammage ? `${grammage.grammage} gsm` : item.paper_grammage_id || ""
+          };
         }));
         
         setSuppliers(formattedSuppliers);
@@ -105,13 +122,13 @@ const SupplierManager = () => {
 
   useEffect(() => {
     loadSuppliers();
-  }, []);
+  }, [paperTypes, allPaperGrammages]);
 
   const handleAddOrUpdate = async () => {
     if (!newSupplier.paperType || !newSupplier.paperGrammage || !newSupplier.name || newSupplier.pricePerKg <= 0) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาระบุข้อมูลซัพพลายเออร์ให้ครบถ้วน"
+        description: "กรุณาระบุข้อมู���ซัพพลายเออร์ให้ครบถ้วน"
       });
       return;
     }
@@ -434,13 +451,10 @@ const SupplierManager = () => {
               </TableRow>
             ) : (
               filteredSuppliers.map((supplier) => {
-                const paperType = paperTypes.find(type => type.id === supplier.paperType);
-                const paperGrammage = paperGrammages.find(gram => gram.id === supplier.paperGrammage);
-                
                 return (
                   <TableRow key={supplier.id}>
-                    <TableCell>{paperType?.label || supplier.paperType}</TableCell>
-                    <TableCell>{paperGrammage?.grammage ? `${paperGrammage.grammage} gsm` : supplier.paperGrammage}</TableCell>
+                    <TableCell>{supplier.paperTypeName}</TableCell>
+                    <TableCell>{supplier.paperGrammageName}</TableCell>
                     <TableCell>{supplier.name}</TableCell>
                     <TableCell>{supplier.pricePerKg}</TableCell>
                     <TableCell className="text-right">

@@ -38,7 +38,7 @@ export const fetchPaperSizes = async (paperTypeId?: string) => {
   return data;
 };
 
-// Paper Grammages
+// Paper Grammages - Modified to fetch all grammages if no paper type ID is provided
 export const fetchPaperGrammages = async (paperTypeId?: string) => {
   console.log("Fetching grammages with paperTypeId:", paperTypeId);
   let query = supabase
