@@ -1,8 +1,10 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 
 interface ResultsTableProps {
   results: any[];
@@ -19,6 +21,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   onSelect,
   breakdowns
 }) => {
+  const [showDetails, setShowDetails] = useState(false);
+
   if (results.length === 0) {
     return null;
   }
@@ -26,6 +30,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   const formatPerPieceCost = (cost: number) => {
     return cost.toFixed(4);
   };
+
+  // ตรวจสอบว่าข้อมูลสำหรับดัชนีที่เลือกมีอยู่จริง
+  const hasValidResult = selectedIndex < results.length && results[selectedIndex];
+  const hasValidBreakdown = selectedIndex < breakdowns.length && breakdowns[selectedIndex];
 
   return (
     <div className="space-y-4">
@@ -43,7 +51,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         ))}
       </div>
 
-      {results[selectedIndex] && (
+      {hasValidResult ? (
         <Card className="p-4">
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
@@ -77,8 +85,92 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 {formatPerPieceCost(results[selectedIndex].unitCost)} บาท
               </div>
             </div>
+
+            {hasValidBreakdown && (
+              <Collapsible 
+                open={showDetails}
+                onOpenChange={setShowDetails}
+                className="mt-4 pt-2 border-t"
+              >
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full flex justify-between">
+                    <span>แสดงรายละเอียดเพิ่มเติม</span>
+                    {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-4 space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="font-medium">ต้นทุนเพลท:</div>
+                    <div className="text-right">{formatCurrency(breakdowns[selectedIndex].plateCost)}</div>
+                    
+                    <div className="font-medium">ต้นทุนกระดาษ:</div>
+                    <div className="text-right">{formatCurrency(breakdowns[selectedIndex].paperCost)}</div>
+
+                    <div className="font-medium">ต้นทุนหมึก:</div>
+                    <div className="text-right">{formatCurrency(breakdowns[selectedIndex].inkCost)}</div>
+
+                    {breakdowns[selectedIndex].hasCoating && (
+                      <>
+                        <div className="font-medium">ต้นทุนเคลือบ:</div>
+                        <div className="text-right">{formatCurrency(breakdowns[selectedIndex].coatingCost)}</div>
+                      </>
+                    )}
+
+                    {breakdowns[selectedIndex].hasDieCut && (
+                      <>
+                        <div className="font-medium">ต้นทุนไดคัท:</div>
+                        <div className="text-right">{formatCurrency(breakdowns[selectedIndex].dieCutCost)}</div>
+                      </>
+                    )}
+
+                    {breakdowns[selectedIndex].hasBasePrint && (
+                      <>
+                        <div className="font-medium">ต้นทุนพิมพ์พื้น:</div>
+                        <div className="text-right">{formatCurrency(breakdowns[selectedIndex].basePrintCost)}</div>
+                      </>
+                    )}
+
+                    {breakdowns[selectedIndex].shippingCost > 0 && (
+                      <>
+                        <div className="font-medium">ค่าขนส่ง:</div>
+                        <div className="text-right">{formatCurrency(breakdowns[selectedIndex].shippingCost)}</div>
+                      </>
+                    )}
+
+                    {breakdowns[selectedIndex].packagingCost > 0 && (
+                      <>
+                        <div className="font-medium">ค่าบรรจุภัณฑ์:</div>
+                        <div className="text-right">{formatCurrency(breakdowns[selectedIndex].packagingCost)}</div>
+                      </>
+                    )}
+                    
+                    <div className="font-medium border-t pt-1">ต้นทุนรวม:</div>
+                    <div className="text-right font-medium border-t pt-1">{formatCurrency(breakdowns[selectedIndex].baseCost)}</div>
+                    
+                    <div className="font-medium">กำไร ({(breakdowns[selectedIndex].profitMargin * 100).toFixed(0)}%):</div>
+                    <div className="text-right">{formatCurrency(breakdowns[selectedIndex].profit)}</div>
+                    
+                    <div className="font-medium border-t pt-1">ราคาขายรวม:</div>
+                    <div className="text-right font-bold text-green-600 border-t pt-1">
+                      {formatCurrency(results[selectedIndex].totalCost)}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 p-2 bg-gray-50 rounded-md text-xs">
+                    <p><span className="font-medium">สูตรคำนวณกระดาษ:</span> {breakdowns[selectedIndex].formulaExplanations?.paperCostFormula?.explanation}</p>
+                    <p className="mt-1"><span className="font-medium">ประเภทเพลท:</span> {breakdowns[selectedIndex].plateType} ({formatCurrency(breakdowns[selectedIndex].basePlateCost)})</p>
+                    <p className="mt-1"><span className="font-medium">จำนวนตัดกระดาษ:</span> {breakdowns[selectedIndex].cutsPerSheet} ครั้ง</p>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
         </Card>
+      ) : (
+        <div className="flex items-center justify-center p-4 border rounded-md bg-amber-50">
+          <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
+          <span className="text-amber-700">ไม่พบข้อมูลการคำนวณ</span>
+        </div>
       )}
     </div>
   );
