@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { fetchPaperSizes } from "@/services/supabaseService";
 import { Label } from "@/components/ui/label";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertCircle, Minus, Plus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
@@ -100,9 +98,15 @@ const PrintCalculator = () => {
 
   // Handle calculation with navigation to preview
   const handleCalculate = () => {
+    // Set bypass to true to allow calculation even with manual values
+    calc.setBypassLayoutValidation(true);
+    
     if (calc.calculate()) {
       // Navigate to preview page after successful calculation
       navigate("/preview");
+    } else {
+      // Don't reset the form if calculation fails
+      console.log("Calculation failed, preserving form state");
     }
   };
 

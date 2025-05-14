@@ -1,8 +1,10 @@
 
 import React from "react";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 import LayoutPreview from "../layout-preview/LayoutPreview";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import ResultsTable from "../ResultsTable";
-import BreakdownDetails from "../BreakdownDetails";
 
 interface ResultsPreviewProps {
   selectedPaperSize: { width: number; height: number } | null;
@@ -13,8 +15,8 @@ interface ResultsPreviewProps {
   onLayoutChange: (perSheet: number) => void;
   quantities: string[];
   results: any[];
-  onSelectQuantity: (index: number) => void;
   selectedQuantityIndex: number;
+  onSelectQuantity: (index: number) => void;
   breakdowns: any[];
 }
 
@@ -27,45 +29,53 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
   onLayoutChange,
   quantities,
   results,
-  onSelectQuantity,
   selectedQuantityIndex,
+  onSelectQuantity,
   breakdowns,
 }) => {
   return (
-    <div className="space-y-4">
-      {/* Layout Preview - Always show when data is available */}
-      {selectedPaperSize && showPreview && (
-        <div>
-          <LayoutPreview
-            paperWidth={selectedPaperSize.width}
-            paperHeight={selectedPaperSize.height}
-            jobWidth={parseFloat(width || "0") || 0}
-            jobHeight={parseFloat(height || "0") || 0}
-            onLayoutChange={onLayoutChange}
-          />
-          {printPerSheet > 0 && (
-            <div className="mt-2 text-center text-sm text-green-600 font-medium">
-              เรียบร้อย! ชิ้นงานสามารถวางได้ {printPerSheet} ชิ้นต่อแผ่น
+    <Card className="h-full">
+      <CardContent className="p-4 space-y-4">
+        <CardTitle className="text-lg font-semibold">ตัวอย่างการจัดวางงาน</CardTitle>
+        
+        {showPreview && selectedPaperSize && width && height ? (
+          <div className="space-y-4">
+            <LayoutPreview
+              paperSize={selectedPaperSize}
+              jobWidth={parseFloat(width)}
+              jobHeight={parseFloat(height)}
+              printPerSheet={printPerSheet}
+              onLayoutChange={onLayoutChange}
+            />
+            
+            <div className="text-sm text-center text-green-600 font-medium">
+              สามารถวางงานได้ {printPerSheet} ชิ้นต่อแผ่น
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="h-40 flex items-center justify-center bg-gray-50 rounded-md border">
+            <span className="text-gray-400 text-sm">
+              กรุณากรอกข้อมูลงาน และเลือกขนาดกระดาษเพื่อแสดงการจัดวาง
+            </span>
+          </div>
+        )}
 
-      <ResultsTable
-        quantities={quantities}
-        results={results}
-        onSelectQuantity={onSelectQuantity}
-        selectedQuantityIndex={selectedQuantityIndex}
-        breakdowns={breakdowns}
-      />
-
-      {results.length > 0 && (
-        <BreakdownDetails
-          selectedQuantityIndex={selectedQuantityIndex}
-          breakdowns={breakdowns}
-        />
-      )}
-    </div>
+        {results.length > 0 && (
+          <div className="space-y-4 mt-4">
+            <h3 className="font-semibold">ผลการคำนวณ</h3>
+            <ScrollArea className="h-[250px]">
+              <ResultsTable 
+                results={results} 
+                quantities={quantities} 
+                selectedIndex={selectedQuantityIndex}
+                onSelect={onSelectQuantity}
+                breakdowns={breakdowns}
+              />
+            </ScrollArea>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
