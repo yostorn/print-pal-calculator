@@ -43,6 +43,21 @@ interface BreakdownDetailsProps {
     };
     grammage?: number;
     pricePerKg?: number;
+    formulaExplanations?: {
+      paperWeightFormula: {
+        formula: string;
+        explanation: string;
+      };
+      paperCostFormula: {
+        formula: string;
+        explanation: string;
+      };
+      plateTypeFormula: {
+        formula: string;
+        explanation: string;
+      };
+    };
+    conversionFactor?: number;
   }>;
 }
 
@@ -112,6 +127,11 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
             <div className="pt-1 border-t border-blue-200 font-medium">
               <p className="text-blue-800">ค่ากระดาษรวม:</p>
               <p className="text-lg">{formatCurrency(breakdown.paperCost)}</p>
+              {breakdown.formulaExplanations && (
+                <p className="text-xs text-blue-600 mt-1">
+                  สูตร: {breakdown.formulaExplanations.paperCostFormula.explanation}
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -194,6 +214,14 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
         <p>• ค่ากระดาษต่อแผ่น {formatCurrency(breakdown.sheetCost)}</p>
         {breakdown.cutsPerSheet && breakdown.cutsPerSheet > 1 && (
           <p>• จำนวนตัดกระดาษ: ตัด {breakdown.cutsPerSheet} จากกระดาษแผ่นใหญ่</p>
+        )}
+        {breakdown.formulaExplanations && (
+          <p className="border-t border-gray-200 pt-2 mt-2">
+            • สูตรคำนวณกระดาษ: {breakdown.formulaExplanations.paperCostFormula.explanation}
+          </p>
+        )}
+        {breakdown.conversionFactor && (
+          <p>• ค่า conversion factor: {breakdown.conversionFactor}</p>
         )}
       </div>
     </div>

@@ -59,6 +59,7 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
         onSelectQuantity={onSelectQuantity}
         selectedQuantityIndex={selectedQuantityIndex}
         onViewLayoutDetails={onViewLayoutDetails}
+        breakdowns={breakdowns}
       />
 
       {results.length > 0 && (
