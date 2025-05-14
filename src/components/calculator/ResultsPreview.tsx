@@ -41,7 +41,8 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
         {showPreview && selectedPaperSize && width && height ? (
           <div className="space-y-4">
             <LayoutPreview
-              paperSize={selectedPaperSize}
+              paperWidth={selectedPaperSize.width}
+              paperHeight={selectedPaperSize.height}
               jobWidth={parseFloat(width)}
               jobHeight={parseFloat(height)}
               printPerSheet={printPerSheet}
