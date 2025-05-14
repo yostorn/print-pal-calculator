@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
@@ -52,6 +53,10 @@ interface BreakdownDetailsProps {
         explanation: string;
       };
       plateTypeFormula: {
+        formula: string;
+        explanation: string;
+      };
+      cutsPerSheetFormula?: {
         formula: string;
         explanation: string;
       };
