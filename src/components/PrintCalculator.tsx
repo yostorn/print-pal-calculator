@@ -1,8 +1,7 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
 import ValidationError from "./calculator/ValidationError";
 import BasicJobInfo from "./calculator/BasicJobInfo";
 import CoatingOptions from "./CoatingOptions";
@@ -10,18 +9,23 @@ import OptionalCostInputs from "./calculator/OptionalCostInputs";
 import QuantityInputs from "./calculator/QuantityInputs";
 import CalculationSettings from "./calculator/CalculationSettings";
 import ResultsPreview from "./calculator/ResultsPreview";
-import LayoutDetailsDialog from "./calculator/LayoutDetailsDialog";
 import { usePrintCalculation } from "@/hooks/use-print-calculation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPaperSizes } from "@/services/supabaseService";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Minus, Plus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 
 const PrintCalculator = () => {
   const calc = usePrintCalculation();
+  const navigate = useNavigate();
+  
+  // Manual adjustment for prints per sheet
+  const [manualPrintCount, setManualPrintCount] = useState(calc.printPerSheet.toString());
 
   // Fetch paper sizes based on selected paper type
   const { data: paperSizes, isLoading: isLoadingPaperSizes, error: paperSizesError } = useQuery({
@@ -33,6 +37,8 @@ const PrintCalculator = () => {
   // Debug logs to track data flow
   console.log("Paper type in PrintCalculator:", calc.paperType);
   console.log("Paper sizes API response:", paperSizes);
+  console.log("Plate type selected:", calc.plateType);
+  console.log("Current cuts per sheet:", calc.cutsPerSheet);
 
   // Handle paper size selection
   const handlePaperSizeChange = (sizeId: string) => {
@@ -55,12 +61,50 @@ const PrintCalculator = () => {
     }
   };
 
+  // Update manual print count when automatic calculation changes
+  useEffect(() => {
+    setManualPrintCount(calc.printPerSheet.toString());
+  }, [calc.printPerSheet]);
+
+  // Handle manual print count adjustment
+  const handlePrintCountChange = (value: string) => {
+    setManualPrintCount(value);
+    const count = parseInt(value);
+    if (!isNaN(count) && count > 0) {
+      calc.setPrintPerSheet(count);
+    }
+  };
+
+  const incrementPrintCount = () => {
+    const count = parseInt(manualPrintCount) || 0;
+    const newCount = count + 1;
+    setManualPrintCount(newCount.toString());
+    calc.setPrintPerSheet(newCount);
+  };
+
+  const decrementPrintCount = () => {
+    const count = parseInt(manualPrintCount) || 0;
+    if (count > 1) {
+      const newCount = count - 1;
+      setManualPrintCount(newCount.toString());
+      calc.setPrintPerSheet(newCount);
+    }
+  };
+
   // Show a warning if paper type is selected but no paper size is selected
   useEffect(() => {
     if (calc.paperType && !calc.selectedPaperSize && !isLoadingPaperSizes) {
       console.log("Paper type selected but no paper size selected.");
     }
   }, [calc.paperType, calc.selectedPaperSize, isLoadingPaperSizes]);
+
+  // Handle calculation with navigation to preview
+  const handleCalculate = () => {
+    if (calc.calculate()) {
+      // Navigate to preview page after successful calculation
+      navigate("/preview");
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -166,6 +210,64 @@ const PrintCalculator = () => {
               </RadioGroup>
             </div>
 
+            {/* Cuts Per Sheet Selection */}
+            <div className="rounded-md border p-4">
+              <div className="mb-2">
+                <Label className="text-sm font-medium">จำนวนตัดกระดาษ</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input 
+                  type="number" 
+                  min="1" 
+                  max="10"
+                  value={calc.cutsPerSheet.toString()}
+                  onChange={(e) => calc.setCutsPerSheet(parseInt(e.target.value) || 1)}
+                  className="w-20"
+                />
+                <span className="text-sm">ครั้ง</span>
+                <div className="text-xs text-gray-500 ml-2">
+                  กรณากระดาษแผ่นใหญ่มาตัด 1 จากกระดาษแผ่นใหญ่
+                </div>
+              </div>
+            </div>
+
+            {/* Manual Prints Per Sheet Adjustment */}
+            {calc.selectedPaperSize && calc.width && calc.height && (
+              <div className="rounded-md border p-4">
+                <div className="mb-2">
+                  <Label className="text-sm font-medium">จำนวนชิ้นต่อแผ่น</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    onClick={decrementPrintCount}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input 
+                    type="number"
+                    value={manualPrintCount}
+                    onChange={(e) => handlePrintCountChange(e.target.value)}
+                    className="w-20 text-center"
+                    min="1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    onClick={incrementPrintCount}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <div className="text-sm text-green-600 ml-2">
+                    เรียบร้อย! ชิ้นงานสามารถวางได้ {manualPrintCount} ชิ้นต่อแผ่น
+                  </div>
+                </div>
+              </div>
+            )}
+
             <CoatingOptions
               selectedCoating={calc.selectedCoating}
               coatingCost={calc.coatingCost}
@@ -205,32 +307,9 @@ const PrintCalculator = () => {
               onProfitMarginChange={calc.setProfitMargin}
             />
 
-            {/* Layout details button */}
-            <Button
-              className="w-full mb-2"
-              variant="outline"
-              onClick={calc.handleOpenLayoutDetails}
-            >
-              <Eye className="mr-2 h-4 w-4" /> ดูรายละเอียดการจัดวางงาน
-            </Button>
-
-            {/* Layout Details Dialog/Sheet */}
-            <LayoutDetailsDialog
-              isOpen={calc.isLayoutDetailsOpen}
-              onOpenChange={calc.setIsLayoutDetailsOpen}
-              paperSize={calc.selectedPaperSize}
-              width={calc.width}
-              height={calc.height}
-              sizeUnit={calc.sizeUnit}
-              printPerSheet={calc.printPerSheet}
-              onLayoutChange={calc.handleLayoutChange}
-              onPaperTypeChange={calc.setPaperType}
-              onPaperSizeChange={calc.setSelectedPaperSize}
-            />
-
             <Button 
               className="w-full" 
-              onClick={calc.calculate}
+              onClick={handleCalculate}
               disabled={!calc.paperType || !calc.selectedPaperSize || !calc.width || !calc.height}
             >
               คำนวณ
@@ -250,7 +329,6 @@ const PrintCalculator = () => {
               results={calc.results}
               onSelectQuantity={calc.setSelectedQuantityIndex}
               selectedQuantityIndex={calc.selectedQuantityIndex}
-              onViewLayoutDetails={calc.handleOpenLayoutDetails}
               breakdowns={calc.breakdowns}
             />
           </div>

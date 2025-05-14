@@ -72,7 +72,7 @@ export const usePrintCalculation = () => {
   const [cutsPerSheet, setCutsPerSheet] = useState(savedState?.cutsPerSheet || 1);
   const [plateType, setPlateType] = useState(savedState?.plateType || "ตัด 4");
 
-  // ข้อมูลที่���ูกเลือกเกี่ยวกับกระดาษ
+  // ข้อมูลที่ถูกเลือกเกี่ยวกับกระดาษ
   const [selectedPaperSize, setSelectedPaperSize] = useState<{ width: number; height: number } | null>(
     savedState?.selectedPaperSize || null
   );
@@ -139,6 +139,7 @@ export const usePrintCalculation = () => {
   const setCutsPerSheetAndSave = updateAndSave(setCutsPerSheet);
   const setSelectedPaperSizeAndSave = updateAndSave(setSelectedPaperSize);
   const setPlateTypeAndSave = updateAndSave(setPlateType);
+  const setPrintPerSheetAndSave = updateAndSave(setPrintPerSheet);
 
   // ฟังก์ชันพิเศษสำหรับ quantities เนื่องจากมีรูปแบบการอัพเดทที่ซับซ้อนกว่า
   const addQuantity = () => {
@@ -325,10 +326,7 @@ export const usePrintCalculation = () => {
   // Handle layout change from the preview component
   const handleLayoutChange = useCallback((perSheet: number) => {
     console.log("Layout changed, printPerSheet:", perSheet);
-    setPrintPerSheet(perSheet);
-    
-    // บันทึกค่า printPerSheet ลง localStorage
-    updateAndSave(setPrintPerSheet)(perSheet);
+    setPrintPerSheetAndSave(perSheet);
     
     setBypassLayoutValidation(true);
     
@@ -343,7 +341,7 @@ export const usePrintCalculation = () => {
   // Handle cuts per sheet change
   const handleCutsPerSheetChange = useCallback((cuts: number) => {
     console.log("Cuts per sheet changed to:", cuts);
-    setCutsPerSheet(cuts);
+    setCutsPerSheetAndSave(cuts);
   }, []);
 
   const handleOpenLayoutDetails = () => {
@@ -513,7 +511,8 @@ export const usePrintCalculation = () => {
       quantities: quantities[0],
       paperSizes: !!paperSizes,
       selectedPaperSize,
-      bypassLayoutValidation
+      bypassLayoutValidation,
+      cutsPerSheet
     });
     
     // Split validation into sections for better error messages
@@ -554,31 +553,11 @@ export const usePrintCalculation = () => {
       return false;
     }
     
-    // 5. Validate layout calculation - Modified to be more flexible
+    // 5. Allow bypassing layout validation - user can manually set prints per sheet
     if (printPerSheet <= 0 && !bypassLayoutValidation) {
       console.log("Layout validation failed. printPerSheet:", printPerSheet);
       
-      // Try to analyze why it might be zero
-      if (!selectedPaperSize) {
-        setValidationError("กรุณาเลือกประเภทกระดาษ และขนาดกระดาษ");
-      } else {
-        // More helpful error message about layout issues
-        const jobWidthInch = sizeUnit === "cm" ? parseFloat(width) / 2.54 : parseFloat(width);
-        const jobHeightInch = sizeUnit === "cm" ? parseFloat(height) / 2.54 : parseFloat(height);
-        
-        if (jobWidthInch > selectedPaperSize.width || jobHeightInch > selectedPaperSize.height) {
-          setValidationError("ขนาดงานใหญ่เกินกระดาษ กรุณาเลือกขนาดกระดาษที่ใหญ่กว่า หรือลดขนาดงาน");
-        } else {
-          setValidationError("ไม่สามารถคำนวณการจัดวางได้ กรุณาตรวจสอบขนาดงานและกระดาษ");
-        }
-      }
-      
-      // Force layout calculation if we have all the required dimensions
-      if (selectedPaperSize && width && height) {
-        console.log("Opening layout details to help resolve layout issues");
-        handleOpenLayoutDetails();
-      }
-      
+      setValidationError("กรุณากำหนดจำนวนชิ้นต่อแผ่น");
       return false;
     }
     
@@ -619,7 +598,7 @@ export const usePrintCalculation = () => {
           description: validationError || "กรุณาระบุข้อมูลให้ครบถ้วน",
           variant: "destructive"
         });
-        return;
+        return false;
       }
 
       const newResults = [];
@@ -637,17 +616,21 @@ export const usePrintCalculation = () => {
         // Calculate paper usage with cuts per sheet - ensure cutsPerSheet is passed correctly
         const wastageNum = parseInt(wastage) || 0;
         
+        // Extract cutsPerSheet from plateType or use the manually set value
+        // Note: We now use the manually set cutsPerSheet value
+        const actualCutsPerSheet = cutsPerSheet;
+        console.log("Using cuts per sheet:", actualCutsPerSheet);
+        
         // Calculate paper usage details with the cutsPerSheet value
         const paperUsage = calculatePaperUsage(
           qtyNum,
           printPerSheet,
           wastageNum,
-          cutsPerSheet, // Make sure cutsPerSheet is passed correctly 
+          actualCutsPerSheet, // Make sure cutsPerSheet is passed correctly 
           500 // Default sheets per ream
         );
         
         console.log("Paper usage calculation:", paperUsage);
-        console.log("Using cuts per sheet:", cutsPerSheet);
         
         // Get grammage value from database
         let grammageValue = 0;
@@ -703,7 +686,7 @@ export const usePrintCalculation = () => {
           grammage: grammageValue,
           pricePerKg: paperPricePerKg,
           conversionFactor: conversionFactor,
-          cutsPerSheet: cutsPerSheet,
+          cutsPerSheet: actualCutsPerSheet,
           result: paperCost
         });
         
@@ -764,8 +747,8 @@ export const usePrintCalculation = () => {
           },
           cutsPerSheetFormula: {
             formula: "User selected",
-            result: cutsPerSheet,
-            explanation: `จำนวนที่ตัดจากกระดาษแผ่นใหญ่: ${cutsPerSheet} ครั้ง`
+            result: actualCutsPerSheet,
+            explanation: `จำนวนที่ตัดจากกระดาษแผ่นใหญ่: ${actualCutsPerSheet} ครั้ง`
           }
         };
         
@@ -802,7 +785,7 @@ export const usePrintCalculation = () => {
           profit: profit,
           baseCost,
           wastage: wastageNum,
-          cutsPerSheet,
+          cutsPerSheet: actualCutsPerSheet,
           paperUsage,
           formulaExplanations,
           conversionFactor,
@@ -821,6 +804,7 @@ export const usePrintCalculation = () => {
         description: "ราคาถูกคำนวณเรียบร้อยแล้ว"
       });
       
+      return true;
     } catch (error) {
       console.error("Error during calculation:", error);
       toast({
@@ -828,6 +812,7 @@ export const usePrintCalculation = () => {
         description: error instanceof Error ? error.message : "ไม่สามารถคำนวณราคาได้",
         variant: "destructive"
       });
+      return false;
     }
   };
 
@@ -897,7 +882,7 @@ export const usePrintCalculation = () => {
     shippingCost, setShippingCost: setShippingCostAndSave,
     packagingCost, setPackagingCost: setPackagingCostAndSave,
     profitMargin, setProfitMargin: setProfitMarginAndSave,
-    printPerSheet, setPrintPerSheet,
+    printPerSheet, setPrintPerSheet: setPrintPerSheetAndSave,
     validationError, setValidationError,
     showPreview, setShowPreview,
     isLayoutDetailsOpen, setIsLayoutDetailsOpen,

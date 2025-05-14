@@ -15,7 +15,6 @@ interface ResultsPreviewProps {
   results: any[];
   onSelectQuantity: (index: number) => void;
   selectedQuantityIndex: number;
-  onViewLayoutDetails: () => void;
   breakdowns: any[];
 }
 
@@ -30,7 +29,6 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
   results,
   onSelectQuantity,
   selectedQuantityIndex,
-  onViewLayoutDetails,
   breakdowns,
 }) => {
   return (
@@ -58,7 +56,6 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
         results={results}
         onSelectQuantity={onSelectQuantity}
         selectedQuantityIndex={selectedQuantityIndex}
-        onViewLayoutDetails={onViewLayoutDetails}
         breakdowns={breakdowns}
       />
 

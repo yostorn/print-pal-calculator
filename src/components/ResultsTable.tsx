@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Info, Calculator } from "lucide-react";
+import { Calculator } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +15,6 @@ interface ResultsTableProps {
   results: any[];
   onSelectQuantity?: (index: number) => void;
   selectedQuantityIndex?: number;
-  onViewLayoutDetails?: () => void;
   breakdowns?: any[];
 }
 
@@ -24,7 +23,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   results, 
   onSelectQuantity,
   selectedQuantityIndex = 0,
-  onViewLayoutDetails,
   breakdowns = []
 }) => {
   const [activeTab, setActiveTab] = useState("summary");
@@ -151,6 +149,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 <span className="text-gray-600 font-medium">ราคารวม:</span>
                 <span className="font-bold">{formatCurrency(result.totalCost || 0)}</span>
               </div>
+              <div className="grid grid-cols-2 gap-1 border-t pt-1">
+                <span className="text-gray-600 font-medium">ราคาต่อชิ้น:</span>
+                <span>{formatCurrency(result.unitCost || 0)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-gray-600 font-medium">ราคาต่อแผ่น:</span>
+                <span>{(result.totalCost / parseInt(quantities[selectedQuantityIndex])).toFixed(4)} บาท</span>
+              </div>
             </div>
           </TabsContent>
           
@@ -217,17 +223,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg">ผลลัพธ์การคำนวณ</CardTitle>
-          <div className="flex gap-2">
-            {onViewLayoutDetails && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={onViewLayoutDetails}
-              >
-                <Eye className="h-4 w-4 mr-2" /> ดูการจัดวางงาน
-              </Button>
-            )}
-          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -237,7 +232,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               <TableHead>จำนวน</TableHead>
               <TableHead>ราคาต่อชิ้น</TableHead>
               <TableHead>ราคารวม</TableHead>
-              <TableHead>แผ่นพิมพ์</TableHead>
+              <TableHead>ราคาต่อแผ่น</TableHead>
               <TableHead className="w-[50px]">รายละเอียด</TableHead>
             </TableRow>
           </TableHeader>
@@ -254,7 +249,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                 </TableCell>
                 <TableCell>{formatCurrency(result.unitCost)}</TableCell>
                 <TableCell>{formatCurrency(result.totalCost)}</TableCell>
-                <TableCell>{result.sheets} แผ่น</TableCell>
+                <TableCell>{(result.totalCost / parseInt(quantities[index])).toFixed(4)} บาท</TableCell>
                 <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                   <TooltipProvider>
                     <Tooltip>
