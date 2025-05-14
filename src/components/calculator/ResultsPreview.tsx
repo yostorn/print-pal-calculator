@@ -46,7 +46,6 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
               jobWidth={parseFloat(width)}
               jobHeight={parseFloat(height)}
               onLayoutChange={onLayoutChange}
-              printPerSheet={printPerSheet}
             />
             
             <div className="text-sm text-center text-green-600 font-medium">
