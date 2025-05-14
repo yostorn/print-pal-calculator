@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -73,7 +72,7 @@ export const usePrintCalculation = () => {
   const [cutsPerSheet, setCutsPerSheet] = useState(savedState?.cutsPerSheet || 1);
   const [plateType, setPlateType] = useState(savedState?.plateType || "ตัด 4");
 
-  // ข้อมูลที่ถูกเลือกเกี่ยวกับกระดาษ
+  // ข้อมูลที่���ูกเลือกเกี่ยวกับกระดาษ
   const [selectedPaperSize, setSelectedPaperSize] = useState<{ width: number; height: number } | null>(
     savedState?.selectedPaperSize || null
   );
@@ -635,19 +634,20 @@ export const usePrintCalculation = () => {
         const paperPricePerKg = await getPaperPrice(paperType, paperGrammage, supplier);
         console.log("Paper price per kg:", paperPricePerKg);
         
-        // Calculate paper usage with cuts per sheet
+        // Calculate paper usage with cuts per sheet - ensure cutsPerSheet is passed correctly
         const wastageNum = parseInt(wastage) || 0;
         
-        // Calculate paper usage details
+        // Calculate paper usage details with the cutsPerSheet value
         const paperUsage = calculatePaperUsage(
           qtyNum,
           printPerSheet,
           wastageNum,
-          cutsPerSheet,
+          cutsPerSheet, // Make sure cutsPerSheet is passed correctly 
           500 // Default sheets per ream
         );
         
         console.log("Paper usage calculation:", paperUsage);
+        console.log("Using cuts per sheet:", cutsPerSheet);
         
         // Get grammage value from database
         let grammageValue = 0;
@@ -684,10 +684,11 @@ export const usePrintCalculation = () => {
           ? parseInt(formulaSettings.conversionFactor) 
           : 3100;
         
-        // Calculate paper cost using the formula:
+        // Calculate paper cost using the formula with reams and cutsPerSheet:
         // (reams × width × height × GSM ÷ 3100 × price_per_kg)
+        // The cutsPerSheet is already factored into the reamsNeeded calculation in calculatePaperUsage
         const paperCost = calculatePaperCost(
-          paperUsage.reamsNeeded,
+          paperUsage.reamsNeeded, // This already accounts for cuts per sheet
           selectedPaperSize!.width,
           selectedPaperSize!.height,
           grammageValue, // Use the fetched grammage value
@@ -702,6 +703,7 @@ export const usePrintCalculation = () => {
           grammage: grammageValue,
           pricePerKg: paperPricePerKg,
           conversionFactor: conversionFactor,
+          cutsPerSheet: cutsPerSheet,
           result: paperCost
         });
         
@@ -759,6 +761,11 @@ export const usePrintCalculation = () => {
             formula: "User selected",
             result: plateType,
             explanation: `ผู้ใช้เลือกประเภทเพลท ${plateType}`
+          },
+          cutsPerSheetFormula: {
+            formula: "User selected",
+            result: cutsPerSheet,
+            explanation: `จำนวนที่ตัดจากกระดาษแผ่นใหญ่: ${cutsPerSheet} ครั้ง`
           }
         };
         

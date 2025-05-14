@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -63,6 +64,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">แผ่นพิมพ์:</span>
                 <span>{breakdown.totalSheets} แผ่น</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-gray-600">การตัดกระดาษ:</span>
+                <span>ตัด {breakdown.cutsPerSheet || 1} จากกระดาษแผ่นใหญ่</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">แผ่นมาสเตอร์:</span>
@@ -169,6 +174,16 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     breakdown.formulaExplanations.plateTypeFormula.explanation
                   )}
                 </div>
+
+                {breakdown.formulaExplanations.cutsPerSheetFormula && (
+                  <div className="space-y-1">
+                    <Badge variant="outline" className="mb-1">การตัดกระดาษ</Badge>
+                    {renderFormulaExplanation(
+                      breakdown.formulaExplanations.cutsPerSheetFormula.formula,
+                      breakdown.formulaExplanations.cutsPerSheetFormula.explanation
+                    )}
+                  </div>
+                )}
                 
                 <div className="space-y-1 mt-2">
                   <div className="text-xs font-medium">ตัวแปรที่ใช้ในการคำนวณ:</div>
@@ -183,6 +198,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   <div className="grid grid-cols-2 gap-1 text-xs">
                     <span><code>price_per_kg</code>:</span>
                     <span>{formatCurrency(breakdown.pricePerKg || 0)}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-xs">
+                    <span><code>cuts_per_sheet</code>:</span>
+                    <span>{breakdown.cutsPerSheet || 1}</span>
                   </div>
                 </div>
               </div>

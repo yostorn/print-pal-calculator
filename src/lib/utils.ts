@@ -53,7 +53,7 @@ export function calculatePaperUsage(
 }
 
 /**
- * Calculate paper cost using the correct formula
+ * Calculate paper cost using the correct formula and accounting for paper cuts
  * @param reams - Number of reams needed
  * @param paperWidth - Paper width in inches
  * @param paperHeight - Paper height in inches
@@ -75,7 +75,7 @@ export function calculatePaperCost(
     reams, 
     paperWidth, 
     paperHeight, 
-    grammage, // Ensure this is the correct grammage value (like 80 for 80 GSM)
+    grammage, 
     pricePerKg,
     conversionFactor
   });

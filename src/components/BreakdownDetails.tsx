@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
@@ -99,25 +98,22 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
               <p className="text-xs text-blue-600">(รวมเผื่อเสีย)</p>
             </div>
             
-            {(breakdown.cutsPerSheet && breakdown.cutsPerSheet > 1) && (
-              <>
-                <div className="pt-1 border-t border-blue-200">
-                  <p className="text-blue-700">ตัดกระดาษ:</p>
-                  <p className="font-medium">ตัด {breakdown.cutsPerSheet} จากกระดาษแผ่นใหญ่</p>
-                </div>
-                
-                <div className="pt-1 border-t border-blue-200">
-                  <p className="text-blue-700">จำนวนแผ่นกระดาษใหญ่ที่ต้องใช้:</p>
-                  <p className="font-medium">{breakdown.masterSheetsNeeded || Math.ceil(breakdown.totalSheets / (breakdown.cutsPerSheet || 1))} แผ่น</p>
-                </div>
-                
-                <div className="pt-1 border-t border-blue-200">
-                  <p className="text-blue-700">จำนวนรีมที่ต้องใช้:</p>
-                  <p className="font-medium">{breakdown.reamsNeeded?.toFixed(3) || (breakdown.masterSheetsNeeded / 500).toFixed(3)} รีม</p>
-                  <p className="text-xs text-blue-600">(1 รีม = 500 แผ่น)</p>
-                </div>
-              </>
-            )}
+            <div className="pt-1 border-t border-blue-200">
+              <p className="text-blue-700">การตัดกระดาษ:</p>
+              <p className="font-medium">ตัด {breakdown.cutsPerSheet || 1} จากกระดาษแผ่นใหญ่</p>
+              <p className="text-xs text-blue-600">(จำนวนตัดจากกระดาษแผ่นใหญ่)</p>
+            </div>
+            
+            <div className="pt-1 border-t border-blue-200">
+              <p className="text-blue-700">จำนวนแผ่นกระดาษใหญ่ที่ต้องใช้:</p>
+              <p className="font-medium">{breakdown.masterSheetsNeeded || Math.ceil(breakdown.totalSheets / (breakdown.cutsPerSheet || 1))} แผ่น</p>
+            </div>
+            
+            <div className="pt-1 border-t border-blue-200">
+              <p className="text-blue-700">จำนวนรีมที่ต้องใช้:</p>
+              <p className="font-medium">{breakdown.reamsNeeded?.toFixed(3) || (breakdown.masterSheetsNeeded / 500).toFixed(3)} รีม</p>
+              <p className="text-xs text-blue-600">(1 รีม = 500 แผ่น)</p>
+            </div>
             
             <div className="pt-2 border-t border-blue-200">
               <p className="text-blue-700">ราคากระดาษต่อแผ่น:</p>
@@ -212,15 +208,18 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
         <p>• เผื่อเสีย {breakdown.wastage} แผ่น</p>
         <p>• ค่าเพลทต่อสี {formatCurrency(breakdown.basePlateCost)}</p>
         <p>• ค่ากระดาษต่อแผ่น {formatCurrency(breakdown.sheetCost)}</p>
-        {breakdown.cutsPerSheet && breakdown.cutsPerSheet > 1 && (
-          <p>• จำนวนตัดกระดาษ: ตัด {breakdown.cutsPerSheet} จากกระดาษแผ่นใหญ่</p>
-        )}
+        <p>• จำนวนตัดกระดาษ: ตัด {breakdown.cutsPerSheet || 1} จากกระดาษแผ่นใหญ่</p>
         {breakdown.grammage && (
           <p>• แกรมกระดาษ: {breakdown.grammage} gsm</p>
         )}
         {breakdown.formulaExplanations && (
           <p className="border-t border-gray-200 pt-2 mt-2 whitespace-normal break-words">
             • สูตรคำนวณกระดาษ: {breakdown.formulaExplanations.paperCostFormula.explanation}
+          </p>
+        )}
+        {breakdown.formulaExplanations?.cutsPerSheetFormula && (
+          <p className="whitespace-normal break-words">
+            • {breakdown.formulaExplanations.cutsPerSheetFormula.explanation}
           </p>
         )}
         {breakdown.conversionFactor && (
