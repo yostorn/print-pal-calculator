@@ -3,7 +3,6 @@ import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
-import LayoutPreview from "./layout-preview/LayoutPreview";
 import ValidationError from "./calculator/ValidationError";
 import BasicJobInfo from "./calculator/BasicJobInfo";
 import CoatingOptions from "./CoatingOptions";
@@ -19,6 +18,7 @@ import { fetchPaperSizes } from "@/services/supabaseService";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertCircle } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const PrintCalculator = () => {
   const calc = usePrintCalculation();
@@ -144,6 +144,27 @@ const PrintCalculator = () => {
                 )}
               </div>
             )}
+
+            {/* Plate Type Selection */}
+            <div className="rounded-md border p-4">
+              <div className="mb-2">
+                <Label className="text-sm font-medium">ประเภทเพลท</Label>
+              </div>
+              <RadioGroup 
+                value={calc.plateType} 
+                onValueChange={calc.setPlateType}
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem id="plate-type-2" value="ตัด 2" />
+                  <Label htmlFor="plate-type-2">ตัด 2</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem id="plate-type-4" value="ตัด 4" />
+                  <Label htmlFor="plate-type-4">ตัด 4</Label>
+                </div>
+              </RadioGroup>
+            </div>
 
             <CoatingOptions
               selectedCoating={calc.selectedCoating}

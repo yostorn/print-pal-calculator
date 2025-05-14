@@ -44,7 +44,7 @@ interface BreakdownDetailsProps {
     grammage?: number;
     pricePerKg?: number;
     formulaExplanations?: {
-      paperWeightFormula: {
+      paperWeightFormula?: {
         formula: string;
         explanation: string;
       };

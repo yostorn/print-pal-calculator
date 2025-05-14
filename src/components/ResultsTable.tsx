@@ -49,9 +49,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   const renderCalculationBreakdown = (result: any, breakdown?: any) => {
     if (!breakdown) return null;
     
-    // คำนวณค่ากระดาษรวมจากราคากระดาษต่อแผ่น x จำนวนกระดาษทั้งหมด
-    // Note: We now use the paperCost directly which is calculated using the correct formula
-    
     return (
       <div className="space-y-2 text-sm p-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -79,10 +76,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">กระดาษเผื่อเสีย:</span>
                 <span>{breakdown.wastage} แผ่น</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">น้ำหนักต่อแผ่น:</span>
-                <span>{breakdown.paperWeight.toFixed(4)} กก.</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">ราคากระดาษต่อแผ่น:</span>
@@ -159,14 +152,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
             {breakdown.formulaExplanations && (
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <Badge variant="outline" className="mb-1">น้ำหนักกระดาษ</Badge>
-                  {renderFormulaExplanation(
-                    breakdown.formulaExplanations.paperWeightFormula.formula,
-                    breakdown.formulaExplanations.paperWeightFormula.explanation
-                  )}
-                </div>
-                
-                <div className="space-y-1">
                   <Badge variant="outline" className="mb-1">ราคากระดาษ</Badge>
                   {renderFormulaExplanation(
                     breakdown.formulaExplanations.paperCostFormula.formula,
@@ -187,10 +172,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   <div className="grid grid-cols-2 gap-1 text-xs">
                     <span><code>conversion_factor</code>:</span>
                     <span>{breakdown.conversionFactor}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <span><code>area_sqm</code>:</span>
-                    <span>{(breakdown.paperSize?.width * breakdown.paperSize?.height / (39.37 * 39.37)).toFixed(3)} ตร.ม.</span>
                   </div>
                   <div className="grid grid-cols-2 gap-1 text-xs">
                     <span><code>grammage</code>:</span>
