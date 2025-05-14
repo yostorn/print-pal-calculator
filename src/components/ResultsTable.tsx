@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
@@ -22,18 +22,48 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   breakdowns
 }) => {
   const [showDetails, setShowDetails] = useState(false);
+  
+  // เพิ่ม console.log เพื่อดูข้อมูลที่ส่งเข้ามาใน component
+  console.log("ResultsTable - Received props:", { 
+    resultsLength: results.length, 
+    quantitiesLength: quantities.length,
+    selectedIndex,
+    breakdownsLength: breakdowns?.length
+  });
+  
+  // ตรวจสอบสถานะความพร้อมของข้อมูล
+  const hasValidData = Array.isArray(results) && results.length > 0;
+  
+  // ปรับ selectedIndex ให้ถูกต้องถ้าเกินขอบเขตของข้อมูลที่มี
+  useEffect(() => {
+    if (hasValidData && (selectedIndex >= results.length || selectedIndex < 0)) {
+      console.log("Fixing out of bounds selectedIndex");
+      onSelect(0); // Reset to first item if out of bounds
+    }
+  }, [selectedIndex, results, onSelect, hasValidData]);
 
-  if (results.length === 0) {
-    return null;
+  if (!hasValidData) {
+    return (
+      <div className="p-4 border rounded-lg bg-gray-50 text-center">
+        <span className="text-gray-500">ยังไม่มีผลการคำนวณ</span>
+      </div>
+    );
   }
 
   const formatPerPieceCost = (cost: number) => {
     return cost.toFixed(4);
   };
 
-  // ตรวจสอบว่าข้อมูลสำหรับดัชนีที่เลือกมีอยู่จริง
+  // ตรวจสอบว่าข้อมูลสำหรับดัชนีที่เลือกมีอยู่จริงและแสดงรายละเอียด console log
   const hasValidResult = selectedIndex < results.length && results[selectedIndex];
-  const hasValidBreakdown = selectedIndex < breakdowns.length && breakdowns[selectedIndex];
+  const hasValidBreakdown = selectedIndex < breakdowns?.length && breakdowns[selectedIndex];
+  
+  console.log("ResultsTable - Validation:", { 
+    hasValidResult, 
+    hasValidBreakdown,
+    selectedResult: hasValidResult ? results[selectedIndex] : null,
+    selectedBreakdown: hasValidBreakdown ? breakdowns[selectedIndex] : null
+  });
 
   return (
     <div className="space-y-4">
@@ -156,11 +186,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     </div>
                   </div>
                   
-                  <div className="mt-3 p-2 bg-gray-50 rounded-md text-xs">
-                    <p><span className="font-medium">สูตรคำนวณกระดาษ:</span> {breakdowns[selectedIndex].formulaExplanations?.paperCostFormula?.explanation}</p>
-                    <p className="mt-1"><span className="font-medium">ประเภทเพลท:</span> {breakdowns[selectedIndex].plateType} ({formatCurrency(breakdowns[selectedIndex].basePlateCost)})</p>
-                    <p className="mt-1"><span className="font-medium">จำนวนตัดกระดาษ:</span> {breakdowns[selectedIndex].cutsPerSheet} ครั้ง</p>
-                  </div>
+                  {breakdowns[selectedIndex].formulaExplanations && (
+                    <div className="mt-3 p-2 bg-gray-50 rounded-md text-xs">
+                      {breakdowns[selectedIndex].formulaExplanations.paperCostFormula && (
+                        <p><span className="font-medium">สูตรคำนวณกระดาษ:</span> {breakdowns[selectedIndex].formulaExplanations.paperCostFormula.explanation}</p>
+                      )}
+                      <p className="mt-1"><span className="font-medium">ประเภทเพลท:</span> {breakdowns[selectedIndex].plateType} ({formatCurrency(breakdowns[selectedIndex].basePlateCost)})</p>
+                      <p className="mt-1"><span className="font-medium">จำนวนตัดกระดาษ:</span> {breakdowns[selectedIndex].cutsPerSheet} ครั้ง</p>
+                    </div>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
             )}

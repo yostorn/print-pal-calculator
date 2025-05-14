@@ -33,6 +33,17 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
   onSelectQuantity,
   breakdowns,
 }) => {
+  // ตรวจสอบว่ามีผลการคำนวณหรือไม่
+  const hasResults = Array.isArray(results) && results.length > 0;
+  
+  // แสดงข้อมูลการเลือก index ในคอนโซลเพื่อช่วยในการ debug
+  console.log("ResultsPreview - Current state:", { 
+    hasResults,
+    selectedQuantityIndex,
+    resultsLength: results.length,
+    breakdownsLength: breakdowns.length
+  });
+
   return (
     <Card className="h-full">
       <CardContent className="p-4 space-y-4">
@@ -60,7 +71,7 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
           </div>
         )}
 
-        {results.length > 0 && (
+        {hasResults && (
           <div className="space-y-4 mt-4">
             <h3 className="font-semibold">ผลการคำนวณ</h3>
             <ScrollArea className="h-[250px]">
