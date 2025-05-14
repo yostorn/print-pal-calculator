@@ -33,15 +33,18 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
   onSelectQuantity,
   breakdowns,
 }) => {
-  // ตรวจสอบว่ามีผลการคำนวณหรือไม่
+  // Validate results data
   const hasResults = Array.isArray(results) && results.length > 0;
   
-  // แสดงข้อมูลการเลือก index ในคอนโซลเพื่อช่วยในการ debug
-  console.log("ResultsPreview - Current state:", { 
+  // Detailed debug logging to help identify issues
+  console.log("ResultsPreview - Data received:", { 
     hasResults,
     selectedQuantityIndex,
-    resultsLength: results.length,
-    breakdownsLength: breakdowns.length
+    resultsLength: results ? results.length : 0,
+    breakdownsLength: breakdowns ? breakdowns.length : 0,
+    quantities,
+    printPerSheet,
+    paperSize: selectedPaperSize
   });
 
   return (

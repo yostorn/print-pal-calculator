@@ -24,27 +24,45 @@ const SizeInputs: React.FC<SizeInputsProps> = ({
   const [internalWidth, setInternalWidth] = useState(width);
   const [internalHeight, setInternalHeight] = useState(height);
 
+  // Update internal state when props change
+  useEffect(() => {
+    setInternalWidth(width);
+  }, [width]);
+
+  useEffect(() => {
+    setInternalHeight(height);
+  }, [height]);
+
   // Convert between cm and inches when unit changes
   useEffect(() => {
+    console.log("SizeInputs - Unit changed:", unit, {
+      currentWidth: internalWidth,
+      currentHeight: internalHeight
+    });
+    
     if (unit === "cm") {
-      // Convert from inches to cm if needed
-      if (width && !isNaN(parseFloat(width)) && parseFloat(width) > 0 && parseFloat(width) < 50) {
-        setInternalWidth((parseFloat(width) * 2.54).toFixed(2));
-        onWidthChange((parseFloat(width) * 2.54).toFixed(2));
+      // Convert from inches to cm
+      if (internalWidth && !isNaN(parseFloat(internalWidth)) && parseFloat(internalWidth) > 0 && parseFloat(internalWidth) < 50) {
+        const newWidth = (parseFloat(internalWidth) * 2.54).toFixed(2);
+        setInternalWidth(newWidth);
+        onWidthChange(newWidth);
       }
-      if (height && !isNaN(parseFloat(height)) && parseFloat(height) > 0 && parseFloat(height) < 50) {
-        setInternalHeight((parseFloat(height) * 2.54).toFixed(2));
-        onHeightChange((parseFloat(height) * 2.54).toFixed(2));
+      if (internalHeight && !isNaN(parseFloat(internalHeight)) && parseFloat(internalHeight) > 0 && parseFloat(internalHeight) < 50) {
+        const newHeight = (parseFloat(internalHeight) * 2.54).toFixed(2);
+        setInternalHeight(newHeight);
+        onHeightChange(newHeight);
       }
     } else {
       // Convert from cm to inches
-      if (width && !isNaN(parseFloat(width)) && parseFloat(width) > 0) {
-        setInternalWidth((parseFloat(width) / 2.54).toFixed(2));
-        onWidthChange((parseFloat(width) / 2.54).toFixed(2));
+      if (internalWidth && !isNaN(parseFloat(internalWidth)) && parseFloat(internalWidth) > 0) {
+        const newWidth = (parseFloat(internalWidth) / 2.54).toFixed(2);
+        setInternalWidth(newWidth);
+        onWidthChange(newWidth);
       }
-      if (height && !isNaN(parseFloat(height)) && parseFloat(height) > 0) {
-        setInternalHeight((parseFloat(height) / 2.54).toFixed(2));
-        onHeightChange((parseFloat(height) / 2.54).toFixed(2));
+      if (internalHeight && !isNaN(parseFloat(internalHeight)) && parseFloat(internalHeight) > 0) {
+        const newHeight = (parseFloat(internalHeight) / 2.54).toFixed(2);
+        setInternalHeight(newHeight);
+        onHeightChange(newHeight);
       }
     }
     
@@ -65,7 +83,10 @@ const SizeInputs: React.FC<SizeInputsProps> = ({
   };
 
   const handleUnitChange = (value: "cm" | "inch") => {
-    if (value) setUnit(value);
+    if (value) {
+      console.log("SizeInputs - Unit changing to:", value);
+      setUnit(value);
+    }
   };
 
   return (
