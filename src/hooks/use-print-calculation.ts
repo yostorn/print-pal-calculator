@@ -616,8 +616,7 @@ export const usePrintCalculation = () => {
         // Calculate paper usage with cuts per sheet - ensure cutsPerSheet is passed correctly
         const wastageNum = parseInt(wastage) || 0;
         
-        // Extract cutsPerSheet from plateType or use the manually set value
-        // Note: We now use the manually set cutsPerSheet value
+        // Use the user-defined cutsPerSheet value
         const actualCutsPerSheet = cutsPerSheet;
         console.log("Using cuts per sheet:", actualCutsPerSheet);
         
@@ -733,7 +732,7 @@ export const usePrintCalculation = () => {
         const unitCost = totalCost / qtyNum;
         
         // Store the formula explanations for display
-        const paperCostFormula = "(reams * size.width * size.height * grammage / conversion_factor * price_per_kg)";
+        const paperCostFormula = "(reams * size.width * size.height * GSM ÷ conversion_factor * price_per_kg)";
         const formulaExplanations = {
           paperCostFormula: {
             formula: paperCostFormula,

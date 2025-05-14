@@ -1,287 +1,224 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import React, { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calculator } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 
 interface ResultsTableProps {
-  quantities: string[];
   results: any[];
-  onSelectQuantity?: (index: number) => void;
-  selectedQuantityIndex?: number;
-  breakdowns?: any[];
+  quantities: string[];
+  selectedIndex: number;
+  onSelect: (index: number) => void;
+  breakdowns: any[];
 }
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ 
-  quantities, 
-  results, 
-  onSelectQuantity,
-  selectedQuantityIndex = 0,
-  breakdowns = []
+const ResultsTable: React.FC<ResultsTableProps> = ({
+  results,
+  quantities,
+  selectedIndex,
+  onSelect,
+  breakdowns
 }) => {
-  const [activeTab, setActiveTab] = useState("summary");
+  const [showDetails, setShowDetails] = useState(false);
   
-  if (!results.length) {
-    return null;
+  // Enhanced debugging
+  console.log("ResultsTable - Received props:", { 
+    resultsLength: results?.length, 
+    quantitiesLength: quantities?.length,
+    selectedIndex,
+    breakdownsLength: breakdowns?.length,
+    resultsData: results,
+    breakdownsData: breakdowns,
+    quantities
+  });
+  
+  // Validate data
+  const hasValidData = Array.isArray(results) && results.length > 0;
+  
+  // Ensure selectedIndex is within bounds
+  useEffect(() => {
+    if (hasValidData && (selectedIndex >= results.length || selectedIndex < 0)) {
+      console.log("Fixing out of bounds selectedIndex", { selectedIndex, resultsLength: results.length });
+      onSelect(0); // Reset to first item if out of bounds
+    }
+  }, [selectedIndex, results, onSelect, hasValidData]);
+
+  // Return early if no valid data
+  if (!hasValidData) {
+    return (
+      <div className="p-4 border rounded-lg bg-gray-50 text-center">
+        <span className="text-gray-500">ยังไม่มีผลการคำนวณ</span>
+      </div>
+    );
   }
 
-  const renderFormulaExplanation = (formula: string, explanation: string) => {
-    return (
-      <div className="space-y-1">
-        <div className="bg-gray-100 p-2 rounded text-xs font-mono overflow-x-auto">
-          {formula}
-        </div>
-        <div className="text-xs text-gray-600 whitespace-normal break-words">
-          {explanation}
-        </div>
-      </div>
-    );
+  // Format cost with 4 decimal places
+  const formatPerPieceCost = (cost: number) => {
+    return cost.toFixed(4);
   };
 
-  const renderCalculationBreakdown = (result: any, breakdown?: any) => {
-    if (!breakdown) return null;
-    
-    return (
-      <div className="space-y-2 text-sm p-1">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="summary">สรุป</TabsTrigger>
-            <TabsTrigger value="formulas">สูตรคำนวณ</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="summary" className="space-y-2 mt-2">
-            <h3 className="font-medium mb-2">รายละเอียดการคำนวณ</h3>
-            
-            <div className="space-y-1">
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">แผ่นพิมพ์:</span>
-                <span>{breakdown.totalSheets} แผ่น</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">การตัดกระดาษ:</span>
-                <span>ตัด {breakdown.cutsPerSheet || 1} จากกระดาษแผ่นใหญ่</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">แผ่นมาสเตอร์:</span>
-                <span>{breakdown.masterSheetsNeeded} แผ่น</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">จำนวนรีม:</span>
-                <span>{breakdown.reamsNeeded.toFixed(3)} รีม</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">กระดาษเผื่อเสีย:</span>
-                <span>{breakdown.wastage} แผ่น</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">ราคากระดาษต่อแผ่น:</span>
-                <span>{formatCurrency(breakdown.sheetCost || 0)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">ค่ากระดาษทั้งหมด:</span>
-                <span>{formatCurrency(breakdown.paperCost || 0)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">แกรมกระดาษ:</span>
-                <span>{breakdown.grammage || "N/A"} gsm</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">ประเภทเพลท:</span>
-                <span>{breakdown.plateType}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">ค่าเพลท:</span>
-                <span>{formatCurrency(breakdown.plateCost || 0)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">จำนวนสี:</span>
-                <span>{breakdown.colorNumber} สี</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">ค่าหมึกต่อสี:</span>
-                <span>{formatCurrency(breakdown.inkCostPerColor || 0.5)} ต่อสี</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">ค่าหมึกทั้งหมด:</span>
-                <span>{formatCurrency(breakdown.inkCost || 0)}</span>
-              </div>
-              {breakdown.hasCoating && (
-                <div className="grid grid-cols-2 gap-1">
-                  <span className="text-gray-600">ค่าเคลือบ:</span>
-                  <span>{formatCurrency(breakdown.coatingCost || 0)}</span>
-                </div>
-              )}
-              {breakdown.hasDieCut && (
-                <div className="grid grid-cols-2 gap-1">
-                  <span className="text-gray-600">ค่าไดคัท:</span>
-                  <span>{formatCurrency(breakdown.dieCutCost || 0)}</span>
-                </div>
-              )}
-              {breakdown.hasBasePrint && (
-                <div className="grid grid-cols-2 gap-1">
-                  <span className="text-gray-600">ค่าพิมพ์พื้น:</span>
-                  <span>{formatCurrency(breakdown.basePrintCost || 0)}</span>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">ค่าขนส่ง:</span>
-                <span>{formatCurrency(breakdown.shippingCost || 0)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">ค่าแพ็คกิ้ง:</span>
-                <span>{formatCurrency(breakdown.packagingCost || 0)}</span>
-              </div>
-              <div className="border-t pt-1 grid grid-cols-2 gap-1">
-                <span className="text-gray-600 font-medium">ต้นทุนรวม:</span>
-                <span>{formatCurrency(breakdown.baseCost || 0)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600">กำไร ({(breakdown.profitMargin * 100).toFixed(0)}%):</span>
-                <span>{formatCurrency(breakdown.profit || 0)}</span>
-              </div>
-              <div className="border-t pt-1 grid grid-cols-2 gap-1">
-                <span className="text-gray-600 font-medium">ราคารวม:</span>
-                <span className="font-bold">{formatCurrency(result.totalCost || 0)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1 border-t pt-1">
-                <span className="text-gray-600 font-medium">ราคาต่อชิ้น:</span>
-                <span>{formatCurrency(result.unitCost || 0)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                <span className="text-gray-600 font-medium">ราคาต่อแผ่น:</span>
-                <span>{(result.totalCost / parseInt(quantities[selectedQuantityIndex])).toFixed(4)} บาท</span>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="formulas" className="space-y-4 mt-2">
-            <h3 className="font-medium">สูตรคำนวณที่ใช้</h3>
-            
-            {breakdown.formulaExplanations && (
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <Badge variant="outline" className="mb-1">ราคากระดาษ</Badge>
-                  {renderFormulaExplanation(
-                    breakdown.formulaExplanations.paperCostFormula.formula,
-                    breakdown.formulaExplanations.paperCostFormula.explanation
-                  )}
-                </div>
-                
-                <div className="space-y-1">
-                  <Badge variant="outline" className="mb-1">การเลือกเพลท</Badge>
-                  {renderFormulaExplanation(
-                    breakdown.formulaExplanations.plateTypeFormula.formula,
-                    breakdown.formulaExplanations.plateTypeFormula.explanation
-                  )}
-                </div>
+  // Validate selected data exists
+  const hasValidResult = selectedIndex < results.length && results[selectedIndex];
+  const hasValidBreakdown = selectedIndex < breakdowns?.length && breakdowns[selectedIndex];
+  
+  // Debug selected data
+  console.log("ResultsTable - Selected data validation:", { 
+    hasValidResult, 
+    hasValidBreakdown,
+    selectedIndex,
+    selectedResult: hasValidResult ? results[selectedIndex] : null,
+    selectedBreakdown: hasValidBreakdown ? breakdowns[selectedIndex] : null
+  });
 
-                {breakdown.formulaExplanations.cutsPerSheetFormula && (
-                  <div className="space-y-1">
-                    <Badge variant="outline" className="mb-1">การตัดกระดาษ</Badge>
-                    {renderFormulaExplanation(
-                      breakdown.formulaExplanations.cutsPerSheetFormula.formula,
-                      breakdown.formulaExplanations.cutsPerSheetFormula.explanation
-                    )}
-                  </div>
-                )}
-                
-                <div className="space-y-1 mt-2">
-                  <div className="text-xs font-medium">ตัวแปรที่ใช้ในการคำนวณ:</div>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <span><code>conversion_factor</code>:</span>
-                    <span>{breakdown.conversionFactor}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <span><code>grammage</code>:</span>
-                    <span>{breakdown.grammage} gsm</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <span><code>price_per_kg</code>:</span>
-                    <span>{formatCurrency(breakdown.pricePerKg || 0)}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <span><code>cuts_per_sheet</code>:</span>
-                    <span>{breakdown.cutsPerSheet || 1}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+  // If no valid result for selected index, show error
+  if (!hasValidResult) {
+    return (
+      <div className="p-4 border rounded-lg bg-yellow-50 text-center">
+        <span className="flex items-center justify-center gap-2 text-yellow-700">
+          <AlertCircle className="h-5 w-5" />
+          ข้อมูลไม่ถูกต้อง กรุณาลองคำนวณใหม่อีกครั้ง
+        </span>
       </div>
     );
-  };
+  }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">ผลลัพธ์การคำนวณ</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>จำนวน</TableHead>
-              <TableHead>ราคาต่อชิ้น</TableHead>
-              <TableHead>ราคารวม</TableHead>
-              <TableHead>ราคาต่อแผ่น</TableHead>
-              <TableHead className="w-[50px]">รายละเอียด</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {results.map((result, index) => (
-              <TableRow 
-                key={index} 
-                className={onSelectQuantity ? "cursor-pointer hover:bg-gray-100" : ""}
-                data-state={selectedQuantityIndex === index ? "selected" : undefined}
-                onClick={onSelectQuantity ? () => onSelectQuantity(index) : undefined}
-              >
-                <TableCell className={selectedQuantityIndex === index ? "font-bold" : ""}>
-                  {parseInt(quantities[index]).toLocaleString()} ชิ้น
-                </TableCell>
-                <TableCell>{formatCurrency(result.unitCost)}</TableCell>
-                <TableCell>{formatCurrency(result.totalCost)}</TableCell>
-                <TableCell>{(result.totalCost / parseInt(quantities[index])).toFixed(4)} บาท</TableCell>
-                <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Calculator className="h-4 w-4 text-blue-500" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-96">
-                            {renderCalculationBreakdown(result, breakdowns?.[index])}
-                          </PopoverContent>
-                        </Popover>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>ดูรายละเอียดการคำนวณ</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {onSelectQuantity && (
-          <div className="mt-3 text-sm text-gray-500">
-            คลิกที่แถวเพื่อดูรายละเอียดต้นทุน
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {quantities.map((qty, index) => (
+          <Button
+            key={index}
+            variant={selectedIndex === index ? "default" : "outline"}
+            size="sm"
+            onClick={() => onSelect(index)}
+            className="min-w-[80px]"
+          >
+            {qty} ชิ้น
+          </Button>
+        ))}
+      </div>
+
+      <Card className="p-4">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="text-sm font-medium">จำนวนพิมพ์:</div>
+            <div className="text-sm text-right">{quantities[selectedIndex]} ชิ้น</div>
+            
+            <div className="text-sm font-medium">ขนาดกระดาษ:</div>
+            <div className="text-sm text-right">{results[selectedIndex].paperSize}</div>
+            
+            <div className="text-sm font-medium">จำนวนต่อแผ่น:</div>
+            <div className="text-sm text-right">{results[selectedIndex].printPerSheet} ชิ้น/แผ่น</div>
+            
+            <div className="text-sm font-medium">จำนวนแผ่นทั้งหมด:</div>
+            <div className="text-sm text-right">{results[selectedIndex].sheets.toLocaleString()} แผ่น</div>
+            
+            <div className="text-sm font-medium">จำนวนแผ่นกระดาษใหญ่:</div>
+            <div className="text-sm text-right">{results[selectedIndex].masterSheets.toLocaleString()} แผ่น</div>
+
+            <div className="text-sm font-medium border-t pt-2">ราคารวมทั้งหมด:</div>
+            <div className="text-lg font-bold text-green-600 text-right border-t pt-2">
+              {formatCurrency(results[selectedIndex].totalCost)}
+            </div>
+
+            <div className="text-sm font-medium">ราคาต่อชิ้น:</div>
+            <div className="text-sm text-right font-semibold">
+              {formatCurrency(results[selectedIndex].unitCost)}
+            </div>
+            
+            <div className="text-sm font-medium">ราคาต่อชิ้น (4 ทศนิยม):</div>
+            <div className="text-sm text-right font-medium">
+              {formatPerPieceCost(results[selectedIndex].unitCost)} บาท
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {hasValidBreakdown && (
+            <Collapsible 
+              open={showDetails}
+              onOpenChange={setShowDetails}
+              className="mt-4 pt-2 border-t"
+            >
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full flex justify-between">
+                  <span>แสดงรายละเอียดเพิ่มเติม</span>
+                  {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4 space-y-2 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="font-medium">ต้นทุนเพลท:</div>
+                  <div className="text-right">{formatCurrency(breakdowns[selectedIndex].plateCost)}</div>
+                  
+                  <div className="font-medium">ต้นทุนกระดาษ:</div>
+                  <div className="text-right">{formatCurrency(breakdowns[selectedIndex].paperCost)}</div>
+
+                  <div className="font-medium">ต้นทุนหมึก:</div>
+                  <div className="text-right">{formatCurrency(breakdowns[selectedIndex].inkCost)}</div>
+
+                  {breakdowns[selectedIndex].hasCoating && (
+                    <>
+                      <div className="font-medium">ต้นทุนเคลือบ:</div>
+                      <div className="text-right">{formatCurrency(breakdowns[selectedIndex].coatingCost)}</div>
+                    </>
+                  )}
+
+                  {breakdowns[selectedIndex].hasDieCut && (
+                    <>
+                      <div className="font-medium">ต้นทุนไดคัท:</div>
+                      <div className="text-right">{formatCurrency(breakdowns[selectedIndex].dieCutCost)}</div>
+                    </>
+                  )}
+
+                  {breakdowns[selectedIndex].hasBasePrint && (
+                    <>
+                      <div className="font-medium">ต้นทุนพิมพ์พื้น:</div>
+                      <div className="text-right">{formatCurrency(breakdowns[selectedIndex].basePrintCost)}</div>
+                    </>
+                  )}
+
+                  {breakdowns[selectedIndex].shippingCost > 0 && (
+                    <>
+                      <div className="font-medium">ค่าขนส่ง:</div>
+                      <div className="text-right">{formatCurrency(breakdowns[selectedIndex].shippingCost)}</div>
+                    </>
+                  )}
+
+                  {breakdowns[selectedIndex].packagingCost > 0 && (
+                    <>
+                      <div className="font-medium">ค่าบรรจุภัณฑ์:</div>
+                      <div className="text-right">{formatCurrency(breakdowns[selectedIndex].packagingCost)}</div>
+                    </>
+                  )}
+                  
+                  <div className="font-medium border-t pt-1">ต้นทุนรวม:</div>
+                  <div className="text-right font-medium border-t pt-1">{formatCurrency(breakdowns[selectedIndex].baseCost)}</div>
+                  
+                  <div className="font-medium">กำไร ({(breakdowns[selectedIndex].profitMargin * 100).toFixed(0)}%):</div>
+                  <div className="text-right">{formatCurrency(breakdowns[selectedIndex].profit)}</div>
+                  
+                  <div className="font-medium border-t pt-1">ราคาขายรวม:</div>
+                  <div className="text-right font-bold text-green-600 border-t pt-1">
+                    {formatCurrency(results[selectedIndex].totalCost)}
+                  </div>
+                </div>
+                
+                {breakdowns[selectedIndex].formulaExplanations && (
+                  <div className="mt-3 p-2 bg-gray-50 rounded-md text-xs">
+                    {breakdowns[selectedIndex].formulaExplanations.paperCostFormula && (
+                      <p><span className="font-medium">สูตรคำนวณกระดาษ:</span> {breakdowns[selectedIndex].formulaExplanations.paperCostFormula.explanation}</p>
+                    )}
+                    <p className="mt-1"><span className="font-medium">ประเภทเพลท:</span> {breakdowns[selectedIndex].plateType} ({formatCurrency(breakdowns[selectedIndex].basePlateCost)})</p>
+                    <p className="mt-1"><span className="font-medium">จำนวนตัดกระดาษ:</span> {breakdowns[selectedIndex].cutsPerSheet} ครั้ง</p>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
+      </Card>
+    </div>
   );
 };
 

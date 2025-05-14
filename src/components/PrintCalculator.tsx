@@ -14,15 +14,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { fetchPaperSizes } from "@/services/supabaseService";
 import { Label } from "@/components/ui/label";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertCircle, Minus, Plus } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const PrintCalculator = () => {
   const calc = usePrintCalculation();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Manual adjustment for prints per sheet
   const [manualPrintCount, setManualPrintCount] = useState(calc.printPerSheet.toString());
@@ -35,10 +36,19 @@ const PrintCalculator = () => {
   });
 
   // Debug logs to track data flow
-  console.log("Paper type in PrintCalculator:", calc.paperType);
-  console.log("Paper sizes API response:", paperSizes);
-  console.log("Plate type selected:", calc.plateType);
-  console.log("Current cuts per sheet:", calc.cutsPerSheet);
+  console.log("PrintCalculator - Current state:", {
+    paperType: calc.paperType,
+    paperSizes,
+    plateType: calc.plateType,
+    cutsPerSheet: calc.cutsPerSheet,
+    sizeUnit: calc.sizeUnit,
+    width: calc.width,
+    height: calc.height,
+    validationError: calc.validationError,
+    printPerSheet: calc.printPerSheet,
+    results: calc.results,
+    breakdowns: calc.breakdowns
+  });
 
   // Handle paper size selection
   const handlePaperSizeChange = (sizeId: string) => {
@@ -100,9 +110,48 @@ const PrintCalculator = () => {
 
   // Handle calculation with navigation to preview
   const handleCalculate = () => {
+    console.log("Calculate button clicked - pre-calculation state:", {
+      width: calc.width,
+      height: calc.height,
+      sizeUnit: calc.sizeUnit,
+      quantities: calc.quantities,
+      printPerSheet: calc.printPerSheet
+    });
+    
+    // Set bypass to true to allow calculation even with manual values
+    calc.setBypassLayoutValidation(true);
+    
+    // Preserve the current unit to keep it after calculation
+    const currentUnit = calc.sizeUnit;
+    
     if (calc.calculate()) {
-      // Navigate to preview page after successful calculation
-      navigate("/preview");
+      // Show success toast
+      toast({
+        title: "คำนวณเสร็จสิ้น",
+        description: "ผลการคำนวณแสดงที่ด้านขวา"
+      });
+      
+      console.log("Calculation successful - post-calculation state:", {
+        resultsLength: calc.results.length,
+        breakdownsLength: calc.breakdowns.length,
+        width: calc.width,
+        height: calc.height,
+        currentUnit: currentUnit
+      });
+      
+      // Make sure unit is preserved
+      if (currentUnit !== calc.sizeUnit) {
+        console.log("Restoring unit to:", currentUnit);
+        calc.setSizeUnit(currentUnit);
+      }
+    } else {
+      // Show error toast
+      toast({
+        title: "ไม่สามารถคำนวณได้",
+        description: calc.validationError || "กรุณาตรวจสอบข้อมูลให้ถูกต้อง",
+        variant: "destructive"
+      });
+      console.log("Calculation failed:", calc.validationError);
     }
   };
 
