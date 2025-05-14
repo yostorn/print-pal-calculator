@@ -74,10 +74,10 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
           </div>
         )}
 
-        {hasResults && (
+        {hasResults ? (
           <div className="space-y-4 mt-4">
             <h3 className="font-semibold">ผลการคำนวณ</h3>
-            <ScrollArea className="h-[250px]">
+            <ScrollArea className="h-[350px]"> {/* Increased height for better visibility */}
               <ResultsTable 
                 results={results} 
                 quantities={quantities} 
@@ -87,7 +87,11 @@ const ResultsPreview: React.FC<ResultsPreviewProps> = ({
               />
             </ScrollArea>
           </div>
-        )}
+        ) : showPreview && selectedPaperSize && width && height ? (
+          <div className="text-center py-4 border-t">
+            <p className="text-sm text-blue-600">กรุณากดปุ่ม "คำนวณ" เพื่อดูผลการคำนวณ</p>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -72,7 +72,7 @@ export const usePrintCalculation = () => {
   const [cutsPerSheet, setCutsPerSheet] = useState(savedState?.cutsPerSheet || 1);
   const [plateType, setPlateType] = useState(savedState?.plateType || "ตัด 4");
 
-  // ข้อมูลที่ถูกเลือกเกี่ยวกับกระดาษ
+  // ข้อมูลที่ถูกเลือกเ��ี่ยวกับกระดาษ
   const [selectedPaperSize, setSelectedPaperSize] = useState<{ width: number; height: number } | null>(
     savedState?.selectedPaperSize || null
   );
@@ -581,8 +581,12 @@ export const usePrintCalculation = () => {
   // Calculate results with the correct paper cost formula
   const calculate = async () => {
     console.log("Starting calculation with values:", {
-      paperType, paperGrammage, supplier, width, height, printPerSheet, quantities, cutsPerSheet, plateType
+      paperType, paperGrammage, supplier, width, height, printPerSheet, quantities, cutsPerSheet, plateType, sizeUnit
     });
+
+    // Store the current unit before calculation to ensure we can restore it later
+    const startingUnit = sizeUnit;
+    console.log("Starting unit before calculation:", startingUnit);
 
     try {
       // Turn off bypass flag for normal validation only if printPerSheet is 0
@@ -798,6 +802,12 @@ export const usePrintCalculation = () => {
       setResults(newResults);
       setBreakdowns(newBreakdowns);
       
+      // Restore original unit if changed during calculation
+      if (startingUnit !== sizeUnit) {
+        console.log("Restoring original unit from:", sizeUnit, "to:", startingUnit);
+        setSizeUnit(startingUnit);
+      }
+      
       toast({
         title: "คำนวณเสร็จสิ้น",
         description: "ราคาถูกคำนวณเรียบร้อยแล้ว"
@@ -808,7 +818,7 @@ export const usePrintCalculation = () => {
       console.error("Error during calculation:", error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: error instanceof Error ? error.message : "ไม่สามารถคำนวณราคาได้",
+        description: error instanceof Error ? error.message : "ไม่สามารถคำนวณราค���ได้",
         variant: "destructive"
       });
       return false;

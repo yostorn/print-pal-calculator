@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
@@ -82,13 +83,25 @@ type FormulaExplanations = {
 }
 
 const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityIndex, breakdowns }) => {
+  console.log("BreakdownDetails - Received props:", { 
+    selectedQuantityIndex, 
+    breakdownsLength: breakdowns?.length,
+    breakdowns
+  });
+  
   // Check if we have valid data and index
   if (!breakdowns || breakdowns.length === 0 || !breakdowns[selectedQuantityIndex]) {
-    return null;
+    console.error("Invalid breakdown data", { selectedQuantityIndex, breakdownsLength: breakdowns?.length });
+    return (
+      <div className="p-4 bg-red-50 text-red-700 rounded-md">
+        ไม่พบข้อมูลการคำนวณ กรุณาลองคำนวณใหม่อีกครั้ง
+      </div>
+    );
   }
 
   // Get the selected breakdown using the index
   const breakdown = breakdowns[selectedQuantityIndex];
+  console.log("BreakdownDetails - Selected breakdown:", breakdown);
 
   return (
     <div className="space-y-6">
@@ -116,7 +129,7 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
             <div className="pt-1 border-t border-blue-200">
               <p className="text-blue-700">จำนวนกระดาษที่ใช้ทั้งหมด:</p>
               <p className="font-medium">{breakdown.totalSheets} แผ่น</p>
-              <p className="text-xs text-blue-600">(รวม��ผื่อเสีย)</p>
+              <p className="text-xs text-blue-600">(รวมเผื่อเสีย)</p>
             </div>
             
             <div className="pt-1 border-t border-blue-200">
@@ -177,7 +190,7 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
           {breakdown.hasCoating && (
             <TableRow>
               <TableCell className="font-medium">
-                ค่าเคล��อบ {breakdown.coatingType}:
+                ค่าเคลือบ {breakdown.coatingType}:
               </TableCell>
               <TableCell>{formatCurrency(breakdown.coatingCost)}</TableCell>
             </TableRow>
