@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -257,27 +256,6 @@ const PrintCalculator = () => {
                   <Label htmlFor="plate-type-4">ตัด 4</Label>
                 </div>
               </RadioGroup>
-            </div>
-
-            {/* Cuts Per Sheet Selection */}
-            <div className="rounded-md border p-4">
-              <div className="mb-2">
-                <Label className="text-sm font-medium">จำนวนตัดกระดาษ</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input 
-                  type="number" 
-                  min="1" 
-                  max="10"
-                  value={calc.cutsPerSheet.toString()}
-                  onChange={(e) => calc.setCutsPerSheet(parseInt(e.target.value) || 1)}
-                  className="w-20"
-                />
-                <span className="text-sm">ครั้ง</span>
-                <div className="text-xs text-gray-500 ml-2">
-                  กรณากระดาษแผ่นใหญ่มาตัด 1 จากกระดาษแผ่นใหญ่
-                </div>
-              </div>
             </div>
 
             {/* Manual Prints Per Sheet Adjustment */}

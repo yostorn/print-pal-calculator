@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { RotateCw, Info, Ruler, Scissors } from "lucide-react";
+import { RotateCw, Info, Ruler } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import LayoutCanvas from "./LayoutCanvas";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -68,9 +69,6 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
   const [localCustomHeight, setLocalCustomHeight] = useState(customHeight);
   const [localUseCustomSize, setLocalUseCustomSize] = useState(useCustomSize);
   
-  // Local cuts per sheet state
-  const [localCutsPerSheet, setLocalCutsPerSheet] = useState(cutsPerSheet);
-  
   // Fetch paper types
   const { data: paperTypes } = useQuery({
     queryKey: ['paperTypes'],
@@ -93,9 +91,8 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
       setLocalCustomWidth(customWidth);
       setLocalCustomHeight(customHeight);
       setLocalUseCustomSize(useCustomSize);
-      setLocalCutsPerSheet(cutsPerSheet);
     }
-  }, [isOpen, paperWidth, paperHeight, printPerSheet, customWidth, customHeight, useCustomSize, cutsPerSheet]);
+  }, [isOpen, paperWidth, paperHeight, printPerSheet, customWidth, customHeight, useCustomSize]);
   
   // Update local custom dimensions and sync with parent when changed
   const handleCustomWidthChange = (value: string) => {
@@ -121,15 +118,6 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
     if (onResetSize) {
       onResetSize();
       setLocalUseCustomSize(false);
-    }
-  };
-  
-  // Handle cuts per sheet change - Modified to ensure type safety
-  const handleCutsPerSheetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 1;
-    setLocalCutsPerSheet(value);
-    if (onCutsPerSheetChange) {
-      onCutsPerSheetChange(value);
     }
   };
   
@@ -274,32 +262,6 @@ const LayoutDetailsView: React.FC<LayoutDetailsViewProps> = ({
             </AlertDescription>
           </Alert>
         )}
-      </div>
-      
-      {/* Paper Cuts Section */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-        <h3 className="font-medium text-blue-700 mb-2 flex items-center gap-2">
-          <Scissors className="h-4 w-4" />
-          การตัดกระดาษ
-        </h3>
-        
-        <div className="space-y-2">
-          <label className="block text-sm">จำนวนครั้งที่นำแผ่นใหญ่มาตัด</label>
-          <div className="flex items-center gap-3">
-            <Input 
-              type="number"
-              min="1"
-              max="16"
-              value={localCutsPerSheet}
-              onChange={handleCutsPerSheetChange}
-              className="w-24"
-            />
-            <span className="text-sm">ครั้ง</span>
-          </div>
-          <p className="text-xs text-blue-600 mt-1">
-            เช่น ตัด 4 หมายถึงกระดาษแผ่นใหญ่ถูกตัดเป็น 4 ส่วน
-          </p>
-        </div>
       </div>
       
       {!hasSufficientData && (
