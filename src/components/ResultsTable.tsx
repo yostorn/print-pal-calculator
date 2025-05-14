@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -39,7 +38,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         <div className="bg-gray-100 p-2 rounded text-xs font-mono overflow-x-auto">
           {formula}
         </div>
-        <div className="text-xs text-gray-600">
+        <div className="text-xs text-gray-600 whitespace-normal break-words">
           {explanation}
         </div>
       </div>
@@ -71,7 +70,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">จำนวนรีม:</span>
-                <span>{breakdown.reamsNeeded.toFixed(2)} รีม</span>
+                <span>{breakdown.reamsNeeded.toFixed(3)} รีม</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">กระดาษเผื่อเสีย:</span>
@@ -84,6 +83,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">ค่ากระดาษทั้งหมด:</span>
                 <span>{formatCurrency(breakdown.paperCost || 0)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-gray-600">แกรมกระดาษ:</span>
+                <span>{breakdown.grammage || "N/A"} gsm</span>
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-gray-600">ประเภทเพลท:</span>

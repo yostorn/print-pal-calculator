@@ -649,6 +649,36 @@ export const usePrintCalculation = () => {
         
         console.log("Paper usage calculation:", paperUsage);
         
+        // Get grammage value from database
+        let grammageValue = 0;
+        try {
+          const { data: grammageData, error } = await supabase
+            .from('paper_grammages')
+            .select('grammage')
+            .eq('id', paperGrammage)
+            .single();
+            
+          if (grammageData && grammageData.grammage) {
+            grammageValue = parseInt(grammageData.grammage);
+            console.log("Retrieved grammage from DB:", grammageValue);
+          } else if (error) {
+            console.error("Error fetching grammage:", error);
+            // Fall back to parsing from the paperGrammage string if it's a number
+            if (!isNaN(parseInt(paperGrammage))) {
+              grammageValue = parseInt(paperGrammage);
+              console.log("Falling back to paperGrammage as number:", grammageValue);
+            }
+          }
+        } catch (error) {
+          console.error("Exception fetching grammage:", error);
+        }
+        
+        // If we still don't have a valid grammage, log an error and use a default
+        if (!grammageValue) {
+          console.error("Failed to get valid grammage, using default of 80");
+          grammageValue = 80; // Default to common value
+        }
+        
         // Get conversion factor from settings or use default
         const conversionFactor = formulaSettings?.conversionFactor 
           ? parseInt(formulaSettings.conversionFactor) 
@@ -660,7 +690,7 @@ export const usePrintCalculation = () => {
           paperUsage.reamsNeeded,
           selectedPaperSize!.width,
           selectedPaperSize!.height,
-          parseInt(paperGrammage),
+          grammageValue, // Use the fetched grammage value
           paperPricePerKg,
           conversionFactor
         );
@@ -669,7 +699,7 @@ export const usePrintCalculation = () => {
           reams: paperUsage.reamsNeeded.toFixed(3),
           width: selectedPaperSize!.width,
           height: selectedPaperSize!.height,
-          grammage: parseInt(paperGrammage),
+          grammage: grammageValue,
           pricePerKg: paperPricePerKg,
           conversionFactor: conversionFactor,
           result: paperCost
@@ -723,7 +753,7 @@ export const usePrintCalculation = () => {
           paperCostFormula: {
             formula: paperCostFormula,
             result: paperCost,
-            explanation: `จำนวนรีม ${paperUsage.reamsNeeded.toFixed(3)} × กว้าง ${selectedPaperSize!.width} นิ้ว × ยาว ${selectedPaperSize!.height} นิ้ว × แกรม ${paperGrammage} ÷ ${conversionFactor} × ราคากระดาษ ${paperPricePerKg} บาท/กก. = ${paperCost.toFixed(2)} บาท`
+            explanation: `จำนวนรีม ${paperUsage.reamsNeeded.toFixed(3)} × กว้าง ${selectedPaperSize!.width} นิ้ว × ยาว ${selectedPaperSize!.height} นิ้ว × แกรม ${grammageValue} ÷ ${conversionFactor} × ราคากระดาษ ${paperPricePerKg} บาท/กก. = ${paperCost.toFixed(2)} บาท`
           },
           plateTypeFormula: {
             formula: "User selected",
@@ -771,7 +801,7 @@ export const usePrintCalculation = () => {
           conversionFactor,
           inkCostPerColor,
           paperSize: selectedPaperSize,
-          grammage: parseInt(paperGrammage),
+          grammage: grammageValue,
           pricePerKg: paperPricePerKg
         });
       }

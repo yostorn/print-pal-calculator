@@ -71,6 +71,15 @@ export function calculatePaperCost(
   conversionFactor: number = 3100
 ) {
   // Formula: (reams × width × height × GSM ÷ 3100 × price_per_kg)
+  console.log("Paper cost calculation inputs:", {
+    reams, 
+    paperWidth, 
+    paperHeight, 
+    grammage, // Ensure this is the correct grammage value (like 80 for 80 GSM)
+    pricePerKg,
+    conversionFactor
+  });
+  
   const paperCost = reams * paperWidth * paperHeight * grammage / conversionFactor * pricePerKg;
   return paperCost;
 }

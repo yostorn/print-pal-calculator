@@ -128,7 +128,7 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
               <p className="text-blue-800">ค่ากระดาษรวม:</p>
               <p className="text-lg">{formatCurrency(breakdown.paperCost)}</p>
               {breakdown.formulaExplanations && (
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-blue-600 mt-1 whitespace-normal break-words">
                   สูตร: {breakdown.formulaExplanations.paperCostFormula.explanation}
                 </p>
               )}
@@ -215,8 +215,11 @@ const BreakdownDetails: React.FC<BreakdownDetailsProps> = ({ selectedQuantityInd
         {breakdown.cutsPerSheet && breakdown.cutsPerSheet > 1 && (
           <p>• จำนวนตัดกระดาษ: ตัด {breakdown.cutsPerSheet} จากกระดาษแผ่นใหญ่</p>
         )}
+        {breakdown.grammage && (
+          <p>• แกรมกระดาษ: {breakdown.grammage} gsm</p>
+        )}
         {breakdown.formulaExplanations && (
-          <p className="border-t border-gray-200 pt-2 mt-2">
+          <p className="border-t border-gray-200 pt-2 mt-2 whitespace-normal break-words">
             • สูตรคำนวณกระดาษ: {breakdown.formulaExplanations.paperCostFormula.explanation}
           </p>
         )}
