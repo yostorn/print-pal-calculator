@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import SpotUvOptions from "./SpotUvOptions";
 
 const PrintCalculator = () => {
   const calc = usePrintCalculation();
@@ -217,7 +218,7 @@ const PrintCalculator = () => {
                       {paperSizes && paperSizes.length > 0 ? (
                         paperSizes.map((size) => (
                           <SelectItem key={size.id} value={size.id}>
-                            {size.name} ({size.width}" × {size.height}")
+                            {size.name} ({size.width}" × {size.height"})
                           </SelectItem>
                         ))
                       ) : (
@@ -297,9 +298,16 @@ const PrintCalculator = () => {
 
             <CoatingOptions
               selectedCoating={calc.selectedCoating}
-              coatingCost={calc.coatingCost}
+              selectedCoatingSize={calc.selectedCoatingSize}
               onCoatingChange={calc.setSelectedCoating}
-              onCoatingCostChange={calc.setCoatingCost}
+              onCoatingSizeChange={calc.setSelectedCoatingSize}
+            />
+
+            <SpotUvOptions
+              hasSpotUv={calc.hasSpotUv}
+              selectedSpotUvSize={calc.selectedSpotUvSize}
+              onSpotUvChange={calc.setHasSpotUv}
+              onSpotUvSizeChange={calc.setSelectedSpotUvSize}
             />
 
             <OptionalCostInputs

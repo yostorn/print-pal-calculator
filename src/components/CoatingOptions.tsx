@@ -1,46 +1,45 @@
 
 import React from "react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-
-interface CoatingOption {
-  id: string;
-  name: string;
-  description?: string;
-}
+import { fetchCoatingTypes, fetchCoatingSizes } from "@/services/supabaseService";
 
 interface CoatingOptionsProps {
   selectedCoating: string;
-  coatingCost: string;
+  selectedCoatingSize: string;
   onCoatingChange: (coating: string) => void;
-  onCoatingCostChange: (cost: string) => void;
+  onCoatingSizeChange: (sizeId: string) => void;
 }
-
-// Mock data - in production this would come from Supabase
-const COATING_OPTIONS: CoatingOption[] = [
-  { id: "none", name: "ไม่มีการเคลือบ" },
-  { id: "laminate-glossy", name: "Laminate เงา", description: "เคลือบพลาสติกแบบเงาวาว" },
-  { id: "laminate-matte", name: "Laminate ด้าน", description: "เคลือบพลาสติกแบบผิวด้าน" },
-  { id: "uv-coating", name: "เคลือบ UV", description: "เคลือบยูวี เงาวาว" },
-  { id: "spot-uv", name: "Spot UV", description: "เคลือบยูวีเฉพาะจุด" }
-];
 
 const CoatingOptions: React.FC<CoatingOptionsProps> = ({
   selectedCoating,
-  coatingCost,
+  selectedCoatingSize,
   onCoatingChange,
-  onCoatingCostChange
+  onCoatingSizeChange
 }) => {
-  // In a real app, you could fetch this from Supabase
-  // const { data: coatingOptions } = useQuery({
-  //   queryKey: ['coatingOptions'],
-  //   queryFn: fetchCoatingOptions
-  // });
-  
-  const coatingOptions = COATING_OPTIONS;
+  // Fetch coating types from database
+  const { data: coatingTypes } = useQuery({
+    queryKey: ['coatingTypes'],
+    queryFn: fetchCoatingTypes
+  });
+
+  // Fetch coating sizes based on selected coating type
+  const { data: coatingSizes } = useQuery({
+    queryKey: ['coatingSizes', selectedCoating],
+    queryFn: () => fetchCoatingSizes(selectedCoating),
+    enabled: !!selectedCoating && selectedCoating !== "none"
+  });
+
+  const handleCoatingChange = (value: string) => {
+    onCoatingChange(value);
+    // Reset coating size when coating type changes
+    if (value === "none") {
+      onCoatingSizeChange("");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -54,40 +53,47 @@ const CoatingOptions: React.FC<CoatingOptionsProps> = ({
 
       <RadioGroup 
         value={selectedCoating} 
-        onValueChange={onCoatingChange}
+        onValueChange={handleCoatingChange}
         className="gap-2"
       >
-        {coatingOptions.map(option => (
-          <div key={option.id} className="flex items-center space-x-2">
-            <RadioGroupItem value={option.id} id={`coating-${option.id}`} />
-            <Label htmlFor={`coating-${option.id}`} className="text-sm font-normal cursor-pointer">
-              {option.name}
-              {option.description && (
-                <span className="text-gray-500 text-xs ml-1">({option.description})</span>
-              )}
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="none" id="coating-none" />
+          <Label htmlFor="coating-none" className="text-sm font-normal cursor-pointer">
+            ไม่มีการเคลือบ
+          </Label>
+        </div>
+        
+        {coatingTypes?.map(coatingType => (
+          <div key={coatingType.id} className="flex items-center space-x-2">
+            <RadioGroupItem value={coatingType.id} id={`coating-${coatingType.id}`} />
+            <Label htmlFor={`coating-${coatingType.id}`} className="text-sm font-normal cursor-pointer">
+              {coatingType.label}
             </Label>
           </div>
         ))}
       </RadioGroup>
 
-      {selectedCoating !== "none" && (
+      {selectedCoating !== "none" && selectedCoating && (
         <div className="space-y-2 pt-2">
           <div className="flex items-center gap-1">
-            <Label htmlFor="coatingCost">ค่าเคลือบ (บาท/แผ่น)</Label>
+            <Label htmlFor="coatingSize">ขนาดการเคลือบ</Label>
             <div className="tooltip">
               <Info className="h-4 w-4 text-gray-400" />
-              <span className="tooltiptext">ระบุค่าเคลือบต่อหนึ่งแผ่นกระดาษ</span>
+              <span className="tooltiptext">เลือกขนาดการเคลือบ</span>
             </div>
           </div>
-          <Input 
-            id="coatingCost" 
-            type="number" 
-            min="0"
-            step="0.01"
-            value={coatingCost} 
-            onChange={(e) => onCoatingCostChange(e.target.value)}
-            placeholder="ระบุค่าเคลือบต่อแผ่น"
-          />
+          <Select value={selectedCoatingSize} onValueChange={onCoatingSizeChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="เลือกขนาดการเคลือบ" />
+            </SelectTrigger>
+            <SelectContent>
+              {coatingSizes?.map(size => (
+                <SelectItem key={size.id} value={size.id}>
+                  {size.label} - {size.cost_per_sheet} บาท/แผ่น (ขั้นต่ำ {size.minimum_cost} บาท)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
     </div>

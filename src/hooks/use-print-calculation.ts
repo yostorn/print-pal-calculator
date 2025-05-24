@@ -10,7 +10,10 @@ import {
   fetchPaperPrice,
   fetchPlateCosts,
   fetchCalculationSettings,
-  fetchFormulaSettings
+  fetchFormulaSettings,
+  fetchCoatingTypes,
+  fetchCoatingSizes,
+  fetchSpotUvCosts
 } from "@/services/supabaseService";
 import { calculateLayout } from "@/utils/layoutCalculations";
 import { calculatePaperUsage, calculatePaperCost } from "@/lib/utils";
@@ -54,7 +57,9 @@ export const usePrintCalculation = () => {
   const [sizeUnit, setSizeUnit] = useState<"cm" | "inch">(savedState?.sizeUnit || "cm");
   const [colors, setColors] = useState(savedState?.colors || "4");
   const [selectedCoating, setSelectedCoating] = useState(savedState?.selectedCoating || "none");
-  const [coatingCost, setCoatingCost] = useState(savedState?.coatingCost || "0");
+  const [selectedCoatingSize, setSelectedCoatingSize] = useState(savedState?.selectedCoatingSize || "");
+  const [hasSpotUv, setHasSpotUv] = useState(savedState?.hasSpotUv || false);
+  const [selectedSpotUvSize, setSelectedSpotUvSize] = useState(savedState?.selectedSpotUvSize || "");
   const [quantities, setQuantities] = useState<string[]>(savedState?.quantities || ["1000"]);
   const [wastage, setWastage] = useState(savedState?.wastage || "250");
   const [hasDieCut, setHasDieCut] = useState(savedState?.hasDieCut || false);
@@ -72,7 +77,7 @@ export const usePrintCalculation = () => {
   const [cutsPerSheet, setCutsPerSheet] = useState(savedState?.cutsPerSheet || 1);
   const [plateType, setPlateType] = useState(savedState?.plateType || "ตัด 4");
 
-  // ข้อมูลที่ถูกเลือกเ��ี่ยวกับกระดาษ
+  // ข้อมูลที่ถูกเลือกเกี่ยวกับกระดาษ
   const [selectedPaperSize, setSelectedPaperSize] = useState<{ width: number; height: number } | null>(
     savedState?.selectedPaperSize || null
   );
@@ -97,7 +102,9 @@ export const usePrintCalculation = () => {
         sizeUnit,
         colors,
         selectedCoating,
-        coatingCost,
+        selectedCoatingSize,
+        hasSpotUv,
+        selectedSpotUvSize,
         quantities,
         wastage,
         hasDieCut,
@@ -127,7 +134,9 @@ export const usePrintCalculation = () => {
   const setSizeUnitAndSave = updateAndSave(setSizeUnit);
   const setColorsAndSave = updateAndSave(setColors);
   const setSelectedCoatingAndSave = updateAndSave(setSelectedCoating);
-  const setCoatingCostAndSave = updateAndSave(setCoatingCost);
+  const setSelectedCoatingSizeAndSave = updateAndSave(setSelectedCoatingSize);
+  const setHasSpotUvAndSave = updateAndSave(setHasSpotUv);
+  const setSelectedSpotUvSizeAndSave = updateAndSave(setSelectedSpotUvSize);
   const setWastageAndSave = updateAndSave(setWastage);
   const setHasDieCutAndSave = updateAndSave(setHasDieCut);
   const setDieCutCostAndSave = updateAndSave(setDieCutCost);
@@ -210,9 +219,6 @@ export const usePrintCalculation = () => {
     if (settings) {
       if (settings.default_wastage) {
         setWastage(settings.default_wastage);
-      }
-      if (settings.default_coating_cost) {
-        setCoatingCost(settings.default_coating_cost);
       }
     }
     
@@ -498,6 +504,48 @@ export const usePrintCalculation = () => {
     return plateCostsHardcoded[plateType as keyof typeof plateCostsHardcoded] || 0;
   };
 
+  // Get coating cost from database
+  const getCoatingCost = async (coatingSizeId: string, totalSheets: number) => {
+    if (!coatingSizeId) return 0;
+    
+    try {
+      const { data, error } = await supabase
+        .from('coating_sizes')
+        .select('cost_per_sheet, minimum_cost')
+        .eq('id', coatingSizeId)
+        .single();
+      
+      if (error || !data) return 0;
+      
+      const calculatedCost = totalSheets * data.cost_per_sheet;
+      return Math.max(calculatedCost, data.minimum_cost);
+    } catch (error) {
+      console.error("Error fetching coating cost:", error);
+      return 0;
+    }
+  };
+
+  // Get spot UV cost from database
+  const getSpotUvCost = async (spotUvSizeId: string, totalSheets: number) => {
+    if (!spotUvSizeId) return 0;
+    
+    try {
+      const { data, error } = await supabase
+        .from('spot_uv_costs')
+        .select('cost_per_sheet, minimum_cost')
+        .eq('id', spotUvSizeId)
+        .single();
+      
+      if (error || !data) return 0;
+      
+      const calculatedCost = totalSheets * data.cost_per_sheet;
+      return Math.max(calculatedCost, data.minimum_cost);
+    } catch (error) {
+      console.error("Error fetching spot UV cost:", error);
+      return 0;
+    }
+  };
+
   // Improved validation with better error messages and logging
   const validateForm = () => {
     console.log("Validating form with:", {
@@ -578,10 +626,11 @@ export const usePrintCalculation = () => {
     }
   };
 
-  // Calculate results with the correct paper cost formula
+  // Calculate results with the correct coating cost formula
   const calculate = async () => {
     console.log("Starting calculation with values:", {
-      paperType, paperGrammage, supplier, width, height, printPerSheet, quantities, cutsPerSheet, plateType, sizeUnit
+      paperType, paperGrammage, supplier, width, height, printPerSheet, quantities, plateType, sizeUnit,
+      selectedCoating, selectedCoatingSize, hasSpotUv, selectedSpotUvSize
     });
 
     // Store the current unit before calculation to ensure we can restore it later
@@ -700,9 +749,17 @@ export const usePrintCalculation = () => {
         const plateCost = getPlateCost(plateType) * parseInt(colors);
         console.log("Plate cost:", plateCost);
         
-        // Calculate coating cost if applicable
-        const hasCoating = selectedCoating !== "none";
-        const coatingCostTotal = hasCoating ? paperUsage.totalSheets * parseFloat(coatingCost || "0") : 0;
+        // Calculate coating cost using new system (based on total sheets, not prints)
+        const coatingCostTotal = selectedCoating !== "none" && selectedCoatingSize 
+          ? await getCoatingCost(selectedCoatingSize, paperUsage.totalSheets)
+          : 0;
+        
+        // Calculate spot UV cost using new system (based on total sheets, not prints)
+        const spotUvCostTotal = hasSpotUv && selectedSpotUvSize 
+          ? await getSpotUvCost(selectedSpotUvSize, paperUsage.totalSheets)
+          : 0;
+        
+        console.log("Coating cost:", coatingCostTotal, "Spot UV cost:", spotUvCostTotal);
         
         // Calculate ink cost 
         const inkCostPerColor = formulaSettings?.inkCostPerColor 
@@ -723,7 +780,7 @@ export const usePrintCalculation = () => {
         const packagingCostTotal = parseFloat(packagingCost || "0");
         
         // Calculate total cost before profit
-        const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + 
+        const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + spotUvCostTotal +
                         basePrintCostTotal + dieCutCostTotal + 
                         shippingCostTotal + packagingCostTotal;
         
@@ -775,9 +832,11 @@ export const usePrintCalculation = () => {
           reamsNeeded: paperUsage.reamsNeeded,
           sheetCost,
           colorNumber: parseInt(colors),
-          hasCoating,
+          hasCoating: selectedCoating !== "none",
           coatingCost: coatingCostTotal,
           coatingType: selectedCoating !== "none" ? selectedCoating : "",
+          hasSpotUv,
+          spotUvCost: spotUvCostTotal,
           hasDieCut,
           dieCutCost: dieCutCostTotal,
           hasBasePrint,
@@ -818,7 +877,7 @@ export const usePrintCalculation = () => {
       console.error("Error during calculation:", error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: error instanceof Error ? error.message : "ไม่สามารถคำนวณราค���ได้",
+        description: error instanceof Error ? error.message : "ไม่สามารถคำนวณราคาได้",
         variant: "destructive"
       });
       return false;
@@ -881,7 +940,9 @@ export const usePrintCalculation = () => {
     sizeUnit, setSizeUnit: setSizeUnitAndSave,
     colors, setColors: setColorsAndSave,
     selectedCoating, setSelectedCoating: setSelectedCoatingAndSave,
-    coatingCost, setCoatingCost: setCoatingCostAndSave,
+    selectedCoatingSize, setSelectedCoatingSize: setSelectedCoatingSizeAndSave,
+    hasSpotUv, setHasSpotUv: setHasSpotUvAndSave,
+    selectedSpotUvSize, setSelectedSpotUvSize: setSelectedSpotUvSizeAndSave,
     quantities, setQuantities, addQuantity, removeQuantity, updateQuantity,
     wastage, setWastage: setWastageAndSave,
     hasDieCut, setHasDieCut: setHasDieCutAndSave,

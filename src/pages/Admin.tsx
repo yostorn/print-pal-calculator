@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +8,7 @@ import PlateManager from "@/components/admin/PlateManager";
 import PaperSizeManager from "@/components/admin/PaperSizeManager";
 import FormulaManager from "@/components/admin/FormulaManager";
 import AdminNavigation from "@/components/admin/AdminNavigation";
+import CoatingManager from "@/components/admin/CoatingManager";
 
 const Admin = () => {
   return (
@@ -25,12 +25,13 @@ const Admin = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="paper-types" className="w-full">
-              <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4">
+              <TabsList className="grid grid-cols-3 md:grid-cols-7 mb-4">
                 <TabsTrigger value="paper-types">ประเภทกระดาษ</TabsTrigger>
                 <TabsTrigger value="paper-sizes">ขนาดกระดาษ</TabsTrigger>
                 <TabsTrigger value="paper-grammage">แกรมกระดาษ</TabsTrigger>
                 <TabsTrigger value="suppliers">ซัพพลายเออร์</TabsTrigger>
                 <TabsTrigger value="plates">เพลท</TabsTrigger>
+                <TabsTrigger value="coating">การเคลือบ</TabsTrigger>
                 <TabsTrigger value="formulas">สูตรคำนวณ</TabsTrigger>
               </TabsList>
               
@@ -52,6 +53,10 @@ const Admin = () => {
               
               <TabsContent value="plates">
                 <PlateManager />
+              </TabsContent>
+              
+              <TabsContent value="coating">
+                <CoatingManager />
               </TabsContent>
               
               <TabsContent value="formulas">

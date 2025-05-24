@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Paper Types
@@ -170,4 +169,42 @@ export const fetchCalculationSettings = async () => {
   });
   
   return settings;
+};
+
+// Coating Types
+export const fetchCoatingTypes = async () => {
+  const { data, error } = await supabase
+    .from('coating_types')
+    .select('*')
+    .order('label');
+  
+  if (error) throw error;
+  return data;
+};
+
+// Coating Sizes
+export const fetchCoatingSizes = async (coatingTypeId?: string) => {
+  let query = supabase
+    .from('coating_sizes')
+    .select('*')
+    .order('width, height');
+  
+  if (coatingTypeId) {
+    query = query.eq('coating_type_id', coatingTypeId);
+  }
+  
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+};
+
+// Spot UV Costs
+export const fetchSpotUvCosts = async () => {
+  const { data, error } = await supabase
+    .from('spot_uv_costs')
+    .select('*')
+    .order('width, height');
+  
+  if (error) throw error;
+  return data;
 };

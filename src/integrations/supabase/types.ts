@@ -30,6 +30,68 @@ export type Database = {
         }
         Relationships: []
       }
+      coating_sizes: {
+        Row: {
+          coating_type_id: string | null
+          cost_per_sheet: number
+          created_at: string | null
+          height: number
+          id: string
+          label: string
+          minimum_cost: number
+          width: number
+        }
+        Insert: {
+          coating_type_id?: string | null
+          cost_per_sheet?: number
+          created_at?: string | null
+          height: number
+          id?: string
+          label: string
+          minimum_cost?: number
+          width: number
+        }
+        Update: {
+          coating_type_id?: string | null
+          cost_per_sheet?: number
+          created_at?: string | null
+          height?: number
+          id?: string
+          label?: string
+          minimum_cost?: number
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coating_sizes_coating_type_id_fkey"
+            columns: ["coating_type_id"]
+            isOneToOne: false
+            referencedRelation: "coating_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coating_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          label: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          label: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          label?: string
+          name?: string
+        }
+        Relationships: []
+      }
       formula_settings: {
         Row: {
           created_at: string
@@ -209,6 +271,36 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      spot_uv_costs: {
+        Row: {
+          cost_per_sheet: number
+          created_at: string | null
+          height: number
+          id: string
+          label: string
+          minimum_cost: number
+          width: number
+        }
+        Insert: {
+          cost_per_sheet?: number
+          created_at?: string | null
+          height: number
+          id?: string
+          label: string
+          minimum_cost?: number
+          width: number
+        }
+        Update: {
+          cost_per_sheet?: number
+          created_at?: string | null
+          height?: number
+          id?: string
+          label?: string
+          minimum_cost?: number
+          width?: number
         }
         Relationships: []
       }
