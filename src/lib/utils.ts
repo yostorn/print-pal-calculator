@@ -17,19 +17,21 @@ export function formatCurrency(value: number | string) {
 }
 
 /**
- * Calculate paper usage details
+ * Calculate paper usage details with pack-based rounding
  * @param quantity - Job quantity
  * @param printPerSheet - Prints per sheet
  * @param wastage - Wastage sheets
  * @param cutsPerSheet - Number of cuts from master sheet
  * @param sheetsPerReam - Number of sheets per ream (default: 500)
+ * @param sheetsPerPack - Number of sheets per pack (default: 100)
  */
 export function calculatePaperUsage(
   quantity: number,
   printPerSheet: number,
   wastage: number,
   cutsPerSheet: number = 1, 
-  sheetsPerReam: number = 500
+  sheetsPerReam: number = 500,
+  sheetsPerPack: number = 100
 ) {
   // Calculate sheets needed based on quantity and prints per sheet
   const sheetsNeeded = Math.ceil(quantity / printPerSheet);
@@ -40,27 +42,45 @@ export function calculatePaperUsage(
   // Calculate master sheets needed based on cuts per sheet
   const masterSheetsNeeded = Math.ceil(totalSheets / cutsPerSheet);
   
-  // Calculate reams needed
-  const reamsNeeded = masterSheetsNeeded / sheetsPerReam;
+  // New logic for pack-based calculation
+  const fullReams = Math.floor(masterSheetsNeeded / sheetsPerReam);
+  const remainingSheets = masterSheetsNeeded % sheetsPerReam;
+  
+  // Calculate packs needed for remaining sheets
+  const packsNeeded = remainingSheets > 0 ? Math.ceil(remainingSheets / sheetsPerPack) : 0;
+  
+  // Calculate total sheets including pack rounding
+  const totalSheetsWithPacks = fullReams * sheetsPerReam + packsNeeded * sheetsPerPack;
+  
+  // Calculate final reams needed (for cost calculation)
+  const reamsNeeded = totalSheetsWithPacks / sheetsPerReam;
   
   return {
     sheetsNeeded,
     totalSheets,
     masterSheetsNeeded,
+    fullReams,
+    remainingSheets,
+    packsNeeded,
+    totalSheetsWithPacks,
     reamsNeeded: parseFloat(reamsNeeded.toFixed(3)),
-    cutsPerSheet
+    cutsPerSheet,
+    sheetsPerPack
   };
 }
 
 /**
- * Calculate paper cost using the correct formula and accounting for paper cuts
- * @param reams - Number of reams needed
+ * Calculate paper cost using pack-based logic
+ * @param reams - Number of reams needed (after pack calculation)
  * @param paperWidth - Paper width in inches
  * @param paperHeight - Paper height in inches
  * @param grammage - Paper weight in GSM
  * @param pricePerKg - Price per kilogram
  * @param conversionFactor - Conversion factor (default: 3100)
- * @returns - Total paper cost
+ * @param sheetsPerPack - Number of sheets per pack for detailed breakdown
+ * @param fullReams - Number of full reams
+ * @param packsNeeded - Number of packs needed
+ * @returns - Total paper cost with breakdown
  */
 export function calculatePaperCost(
   reams: number,
@@ -68,18 +88,33 @@ export function calculatePaperCost(
   paperHeight: number,
   grammage: number,
   pricePerKg: number,
-  conversionFactor: number = 3100
+  conversionFactor: number = 3100,
+  sheetsPerPack: number = 100,
+  fullReams: number = 0,
+  packsNeeded: number = 0
 ) {
-  // Formula: (reams × width × height × GSM ÷ 3100 × price_per_kg)
   console.log("Paper cost calculation inputs:", {
     reams, 
     paperWidth, 
     paperHeight, 
     grammage, 
     pricePerKg,
-    conversionFactor
+    conversionFactor,
+    sheetsPerPack,
+    fullReams,
+    packsNeeded
   });
   
+  // Use the standard formula but with pack-adjusted reams
   const paperCost = reams * paperWidth * paperHeight * grammage / conversionFactor * pricePerKg;
-  return paperCost;
+  
+  return {
+    totalCost: paperCost,
+    fullReams,
+    packsNeeded,
+    breakdown: {
+      fullReamsCost: fullReams > 0 ? (fullReams * paperWidth * paperHeight * grammage / conversionFactor * pricePerKg) : 0,
+      packsCost: packsNeeded > 0 ? (packsNeeded * sheetsPerPack * paperWidth * paperHeight * grammage / conversionFactor * pricePerKg / 500) : 0
+    }
+  };
 }

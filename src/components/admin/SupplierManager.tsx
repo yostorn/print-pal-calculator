@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +17,9 @@ interface Supplier {
   paperGrammage: string;
   name: string;
   pricePerKg: number;
-  paperTypeName?: string;  // Added for display purposes
-  paperGrammageName?: string;  // Added for display purposes
+  sheetsPerPack: number;
+  paperTypeName?: string;
+  paperGrammageName?: string;
 }
 
 interface PaperType {
@@ -40,7 +42,8 @@ const SupplierManager = () => {
     paperType: "",
     paperGrammage: "",
     name: "",
-    pricePerKg: 0
+    pricePerKg: 0,
+    sheetsPerPack: 100
   });
   
   const [editMode, setEditMode] = useState(false);
@@ -80,19 +83,15 @@ const SupplierManager = () => {
           paper_type_id,
           paper_grammage_id,
           supplier_id,
-          suppliers:supplier_id(id, name)
+          suppliers:supplier_id(id, name, sheets_per_pack)
         `)
         .order('price_per_kg');
       
       if (error) throw error;
 
       if (data) {
-        // Transform data to match our supplier interface
         const formattedSuppliers = await Promise.all(data.map(async (item) => {
-          // Get paper type details
           const paperType = paperTypes.find(type => type.id === item.paper_type_id);
-          
-          // Get grammage details - use the allPaperGrammages array
           const grammage = allPaperGrammages.find(g => g.id === item.paper_grammage_id);
           
           return {
@@ -101,6 +100,7 @@ const SupplierManager = () => {
             paperGrammage: item.paper_grammage_id || "",
             name: item.suppliers ? (item.suppliers as any).name : "",
             pricePerKg: item.price_per_kg,
+            sheetsPerPack: item.suppliers ? (item.suppliers as any).sheets_per_pack || 100 : 100,
             paperTypeName: paperType?.label || item.paper_type_id || "",
             paperGrammageName: grammage?.grammage ? `${grammage.grammage} gsm` : item.paper_grammage_id || ""
           };
@@ -125,10 +125,10 @@ const SupplierManager = () => {
   }, [paperTypes, allPaperGrammages]);
 
   const handleAddOrUpdate = async () => {
-    if (!newSupplier.paperType || !newSupplier.paperGrammage || !newSupplier.name || newSupplier.pricePerKg <= 0) {
+    if (!newSupplier.paperType || !newSupplier.paperGrammage || !newSupplier.name || newSupplier.pricePerKg <= 0 || newSupplier.sheetsPerPack <= 0) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาระบุข้อมู���ซัพพลายเออร์ให้ครบถ้วน"
+        description: "กรุณาระบุข้อมูลซัพพลายเออร์ให้ครบถ้วน"
       });
       return;
     }
@@ -136,7 +136,6 @@ const SupplierManager = () => {
     setLoading(true);
 
     try {
-      // Check if supplier exists or create a new one
       let supplierId = "";
       const { data: existingSuppliers, error: supplierError } = await supabase
         .from('suppliers')
@@ -148,11 +147,21 @@ const SupplierManager = () => {
 
       if (existingSuppliers && existingSuppliers.length > 0) {
         supplierId = existingSuppliers[0].id;
+        
+        // Update supplier with sheets_per_pack
+        const { error: updateSupplierError } = await supabase
+          .from('suppliers')
+          .update({ sheets_per_pack: newSupplier.sheetsPerPack })
+          .eq('id', supplierId);
+          
+        if (updateSupplierError) throw updateSupplierError;
       } else {
-        // Create new supplier
         const { data: newSupplierData, error: newSupplierError } = await supabase
           .from('suppliers')
-          .insert({ name: newSupplier.name })
+          .insert({ 
+            name: newSupplier.name,
+            sheets_per_pack: newSupplier.sheetsPerPack
+          })
           .select('id')
           .single();
 
@@ -161,7 +170,6 @@ const SupplierManager = () => {
       }
 
       if (editMode) {
-        // Update existing price
         const { error: updateError } = await supabase
           .from('paper_prices')
           .update({ 
@@ -174,14 +182,14 @@ const SupplierManager = () => {
 
         if (updateError) throw updateError;
         
-        // Update local state
         setSuppliers(suppliers.map(supplier => 
           supplier.id === editId ? { 
             ...supplier, 
             paperType: newSupplier.paperType,
             paperGrammage: newSupplier.paperGrammage,
             name: newSupplier.name,
-            pricePerKg: newSupplier.pricePerKg 
+            pricePerKg: newSupplier.pricePerKg,
+            sheetsPerPack: newSupplier.sheetsPerPack
           } : supplier
         ));
         
@@ -193,7 +201,6 @@ const SupplierManager = () => {
         setEditMode(false);
         setEditId("");
       } else {
-        // Check if this combination already exists
         const { data: existingPrices, error: checkError } = await supabase
           .from('paper_prices')
           .select('id')
@@ -213,7 +220,6 @@ const SupplierManager = () => {
           return;
         }
         
-        // Add new price
         const { data: newPrice, error: insertError } = await supabase
           .from('paper_prices')
           .insert({
@@ -227,13 +233,13 @@ const SupplierManager = () => {
 
         if (insertError) throw insertError;
         
-        // Add to local state
         const newSupplierEntry: Supplier = {
           id: newPrice.id,
           paperType: newPrice.paper_type_id || "",
           paperGrammage: newPrice.paper_grammage_id || "",
           name: newSupplier.name,
-          pricePerKg: newPrice.price_per_kg
+          pricePerKg: newPrice.price_per_kg,
+          sheetsPerPack: newSupplier.sheetsPerPack
         };
         
         setSuppliers([...suppliers, newSupplierEntry]);
@@ -255,7 +261,8 @@ const SupplierManager = () => {
         paperType: "",
         paperGrammage: "",
         name: "",
-        pricePerKg: 0
+        pricePerKg: 0,
+        sheetsPerPack: 100
       });
     }
   };
@@ -265,7 +272,8 @@ const SupplierManager = () => {
       paperType: supplier.paperType,
       paperGrammage: supplier.paperGrammage,
       name: supplier.name,
-      pricePerKg: supplier.pricePerKg
+      pricePerKg: supplier.pricePerKg,
+      sheetsPerPack: supplier.sheetsPerPack || 100
     });
     setEditMode(true);
     setEditId(supplier.id);
@@ -332,10 +340,10 @@ const SupplierManager = () => {
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-2">จัดการซัพพลายเออร์และราคากระดาษ</h2>
           <p className="text-sm text-gray-600 mb-4">
-            เพิ่ม แก้ไข หรือลบซัพพลายเออร์และราคากระดาษต่อกิโลกรัม
+            เพิ่ม แก้ไข หรือลบซัพพลายเออร์และราคากระดาษต่อกิโลกรัม รวมถึงจำนวนแผ่นต่อห่อ
           </p>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2 mb-4">
             <Select 
               value={newSupplier.paperType} 
               onValueChange={(value) => {
@@ -383,6 +391,18 @@ const SupplierManager = () => {
               onChange={(e) => setNewSupplier({
                 ...newSupplier, 
                 pricePerKg: parseFloat(e.target.value) || 0
+              })}
+              disabled={loading}
+            />
+
+            <Input 
+              placeholder="แผ่น/ห่อ" 
+              type="number"
+              min="1"
+              value={newSupplier.sheetsPerPack || ""} 
+              onChange={(e) => setNewSupplier({
+                ...newSupplier, 
+                sheetsPerPack: parseInt(e.target.value) || 100
               })}
               disabled={loading}
             />
@@ -439,13 +459,14 @@ const SupplierManager = () => {
               <TableHead>แกรม</TableHead>
               <TableHead>ซัพพลายเออร์</TableHead>
               <TableHead>ราคา/กก. (บาท)</TableHead>
+              <TableHead>แผ่น/ห่อ</TableHead>
               <TableHead className="text-right">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredSuppliers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   ยังไม่มีข้อมูลราคากระดาษ
                 </TableCell>
               </TableRow>
@@ -457,6 +478,7 @@ const SupplierManager = () => {
                     <TableCell>{supplier.paperGrammageName}</TableCell>
                     <TableCell>{supplier.name}</TableCell>
                     <TableCell>{supplier.pricePerKg}</TableCell>
+                    <TableCell>{supplier.sheetsPerPack || 100}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="icon" onClick={() => handleEdit(supplier)} disabled={loading}>

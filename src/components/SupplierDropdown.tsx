@@ -10,9 +10,15 @@ interface SupplierDropdownProps {
   value: string;
   onChange: (value: string) => void;
   paperType: string;
+  onSupplierDataChange?: (supplierData: { id: string; name: string; sheets_per_pack: number } | null) => void;
 }
 
-const SupplierDropdown: React.FC<SupplierDropdownProps> = ({ value, onChange, paperType }) => {
+const SupplierDropdown: React.FC<SupplierDropdownProps> = ({ 
+  value, 
+  onChange, 
+  paperType,
+  onSupplierDataChange 
+}) => {
   // Fetch suppliers from database
   const { data: suppliers, isLoading, error } = useQuery({
     queryKey: ['suppliers'],
@@ -22,9 +28,32 @@ const SupplierDropdown: React.FC<SupplierDropdownProps> = ({ value, onChange, pa
   // When supplier list loads or changes, set a default if none is selected
   useEffect(() => {
     if (suppliers && suppliers.length > 0 && !value) {
-      onChange(suppliers[0].id);
+      const firstSupplier = suppliers[0];
+      onChange(firstSupplier.id);
+      if (onSupplierDataChange) {
+        onSupplierDataChange({
+          id: firstSupplier.id,
+          name: firstSupplier.name,
+          sheets_per_pack: firstSupplier.sheets_per_pack || 100
+        });
+      }
     }
-  }, [suppliers, value, onChange]);
+  }, [suppliers, value, onChange, onSupplierDataChange]);
+
+  const handleSupplierChange = (supplierId: string) => {
+    onChange(supplierId);
+    
+    if (onSupplierDataChange && suppliers) {
+      const selectedSupplier = suppliers.find(s => s.id === supplierId);
+      if (selectedSupplier) {
+        onSupplierDataChange({
+          id: selectedSupplier.id,
+          name: selectedSupplier.name,
+          sheets_per_pack: selectedSupplier.sheets_per_pack || 100
+        });
+      }
+    }
+  };
 
   // Debug log
   console.log("Suppliers data:", suppliers);
@@ -39,7 +68,7 @@ const SupplierDropdown: React.FC<SupplierDropdownProps> = ({ value, onChange, pa
           <span className="tooltiptext">บริษัทผู้จำหน่ายกระดาษ</span>
         </div>
       </div>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={handleSupplierChange}>
         <SelectTrigger id="supplier" className="w-full">
           <SelectValue placeholder="เลือก Supplier" />
         </SelectTrigger>
@@ -51,7 +80,7 @@ const SupplierDropdown: React.FC<SupplierDropdownProps> = ({ value, onChange, pa
           ) : suppliers && suppliers.length > 0 ? (
             suppliers.map((supplier) => (
               <SelectItem key={supplier.id} value={supplier.id}>
-                {supplier.name}
+                {supplier.name} ({supplier.sheets_per_pack || 100} แผ่น/ห่อ)
               </SelectItem>
             ))
           ) : (

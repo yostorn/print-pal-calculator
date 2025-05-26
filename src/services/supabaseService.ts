@@ -58,24 +58,31 @@ export const fetchPaperGrammages = async (paperTypeId?: string) => {
   return data;
 };
 
-// Suppliers
+// Suppliers - Updated to include sheets_per_pack
 export const fetchSuppliers = async () => {
   const { data, error } = await supabase
     .from('suppliers')
-    .select('*')
+    .select('*, sheets_per_pack')
     .order('name');
   
   if (error) throw error;
   return data;
 };
 
-// Paper Prices - Modified to log more details for debugging
+// Paper Prices - Updated to include supplier sheets_per_pack data
 export const fetchPaperPrice = async (paperTypeId: string, grammageId: string, supplierId: string) => {
   console.log("Fetching paper price with params:", { paperTypeId, grammageId, supplierId });
   
   const { data, error } = await supabase
     .from('paper_prices')
-    .select('*')
+    .select(`
+      *,
+      suppliers!inner(
+        id,
+        name,
+        sheets_per_pack
+      )
+    `)
     .eq('paper_type_id', paperTypeId)
     .eq('paper_grammage_id', grammageId)
     .eq('supplier_id', supplierId)
