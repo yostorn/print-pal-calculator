@@ -8,6 +8,7 @@ import CostBreakdownTable from "@/components/CostBreakdownTable";
 import QuoteSummaryForm from "@/components/QuoteSummaryForm";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const CostPreview = () => {
   const navigate = useNavigate();
@@ -18,6 +19,9 @@ const CostPreview = () => {
   const [costData, setCostData] = useState<any>(null);
   const [editedBreakdowns, setEditedBreakdowns] = useState<any[]>([]);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [paperTypeName, setPaperTypeName] = useState("");
+  const [paperGrammageValue, setPaperGrammageValue] = useState("");
+  const [supplierName, setSupplierName] = useState("");
 
   useEffect(() => {
     // Get data from navigation state or localStorage
@@ -25,6 +29,7 @@ const CostPreview = () => {
     if (navData && navData.results && navData.breakdowns) {
       setCostData(navData);
       setEditedBreakdowns([...navData.breakdowns]);
+      fetchDisplayNames(navData);
     } else {
       // Try to get from localStorage as fallback
       const savedData = localStorage.getItem("print_calculator_results");
@@ -33,6 +38,7 @@ const CostPreview = () => {
           const parsed = JSON.parse(savedData);
           setCostData(parsed);
           setEditedBreakdowns([...parsed.breakdowns]);
+          fetchDisplayNames(parsed);
         } catch (error) {
           console.error("Error parsing saved data:", error);
           navigate('/');
@@ -42,6 +48,42 @@ const CostPreview = () => {
       }
     }
   }, [location.state, navigate]);
+
+  const fetchDisplayNames = async (data: any) => {
+    try {
+      // Fetch paper type name
+      if (data.paperType) {
+        const { data: paperTypeData } = await supabase
+          .from('paper_types')
+          .select('name')
+          .eq('id', data.paperType)
+          .single();
+        if (paperTypeData) setPaperTypeName(paperTypeData.name);
+      }
+
+      // Fetch paper grammage value
+      if (data.paperGrammage) {
+        const { data: grammageData } = await supabase
+          .from('paper_grammages')
+          .select('grammage')
+          .eq('id', data.paperGrammage)
+          .single();
+        if (grammageData) setPaperGrammageValue(grammageData.grammage);
+      }
+
+      // Fetch supplier name
+      if (data.supplier) {
+        const { data: supplierData } = await supabase
+          .from('suppliers')
+          .select('name')
+          .eq('id', data.supplier)
+          .single();
+        if (supplierData) setSupplierName(supplierData.name);
+      }
+    } catch (error) {
+      console.error("Error fetching display names:", error);
+    }
+  };
 
   const handleCostUpdate = (costName: string, quantityIndex: number, newValue: number) => {
     setEditedBreakdowns(prev => {
@@ -108,7 +150,9 @@ const CostPreview = () => {
         height: costData?.height,
         sizeUnit: costData?.sizeUnit,
         colors: costData?.colors,
-        paperType: costData?.paperType,
+        paperType: paperTypeName || costData?.paperType,
+        paperGrammage: paperGrammageValue || costData?.paperGrammage,
+        supplier: supplierName || costData?.supplier,
         plateType: costData?.plateType,
         hasCoating: editedBreakdowns[0]?.hasCoating,
         coatingType: editedBreakdowns[0]?.coatingType,
@@ -185,7 +229,15 @@ const CostPreview = () => {
               </div>
               <div>
                 <span className="font-medium text-gray-600">ประเภทกระดาษ:</span>
-                <p className="font-semibold">{costData.paperType || 'ไม่ระบุ'}</p>
+                <p className="font-semibold">{paperTypeName || 'ไม่ระบุ'}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">แกรมกระดาษ:</span>
+                <p className="font-semibold">{paperGrammageValue} แกรม</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">ซัพพลายเออร์:</span>
+                <p className="font-semibold">{supplierName}</p>
               </div>
               <div>
                 <span className="font-medium text-gray-600">ประเภทเพลท:</span>
@@ -226,7 +278,7 @@ const CostPreview = () => {
             onCostUpdate={handleCostUpdate}
           />
           
-          {/* Summary Cards */}
+          {/* Summary Cards for ALL quantities */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {costData.quantities.map((qty: string, index: number) => (
               <Card key={index}>
@@ -251,6 +303,98 @@ const CostPreview = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Detailed Cost Breakdown for ALL quantities */}
+          <div className="space-y-6">
+            {costData.quantities.map((qty: string, index: number) => {
+              const breakdown = editedBreakdowns[index];
+              if (!breakdown) return null;
+
+              return (
+                <Card key={index}>
+                  <CardHeader>
+                    <CardTitle>รายละเอียดต้นทุน (สำหรับ {parseInt(qty).toLocaleString()} ชิ้น)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-hidden border rounded-lg">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-medium">รายการ</th>
+                            <th className="px-4 py-3 text-right font-medium">จำนวน</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-t">
+                            <td className="px-4 py-3">ต้นทุนเพลท</td>
+                            <td className="px-4 py-3 text-right">{formatCurrency(breakdown.plateCost)}</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="px-4 py-3">ต้นทุนกระดาษ</td>
+                            <td className="px-4 py-3 text-right">{formatCurrency(breakdown.paperCost)}</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="px-4 py-3">ต้นทุนหมึก</td>
+                            <td className="px-4 py-3 text-right">{formatCurrency(breakdown.inkCost)}</td>
+                          </tr>
+                          {breakdown.coatingCost > 0 && (
+                            <tr className="border-t">
+                              <td className="px-4 py-3">ค่าเคลือบ</td>
+                              <td className="px-4 py-3 text-right">{formatCurrency(breakdown.coatingCost)}</td>
+                            </tr>
+                          )}
+                          {breakdown.spotUvCost > 0 && (
+                            <tr className="border-t">
+                              <td className="px-4 py-3">ค่า Spot UV</td>
+                              <td className="px-4 py-3 text-right">{formatCurrency(breakdown.spotUvCost)}</td>
+                            </tr>
+                          )}
+                          {breakdown.dieCutCost > 0 && (
+                            <tr className="border-t">
+                              <td className="px-4 py-3">ค่าไดคัท</td>
+                              <td className="px-4 py-3 text-right">{formatCurrency(breakdown.dieCutCost)}</td>
+                            </tr>
+                          )}
+                          {breakdown.basePrintCost > 0 && (
+                            <tr className="border-t">
+                              <td className="px-4 py-3">ค่าพิมพ์พื้น</td>
+                              <td className="px-4 py-3 text-right">{formatCurrency(breakdown.basePrintCost)}</td>
+                            </tr>
+                          )}
+                          {breakdown.shippingCost > 0 && (
+                            <tr className="border-t">
+                              <td className="px-4 py-3">ค่าขนส่ง</td>
+                              <td className="px-4 py-3 text-right">{formatCurrency(breakdown.shippingCost)}</td>
+                            </tr>
+                          )}
+                          {breakdown.packagingCost > 0 && (
+                            <tr className="border-t">
+                              <td className="px-4 py-3">ค่าแพ็คเกจ</td>
+                              <td className="px-4 py-3 text-right">{formatCurrency(breakdown.packagingCost)}</td>
+                            </tr>
+                          )}
+                          <tr className="border-t bg-gray-50">
+                            <td className="px-4 py-3 font-semibold">รวมต้นทุน</td>
+                            <td className="px-4 py-3 text-right font-semibold">{formatCurrency(breakdown.baseCost)}</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="px-4 py-3">กำไร ({(breakdown.profitMargin * 100).toFixed(0)}%)</td>
+                            <td className="px-4 py-3 text-right">{formatCurrency(breakdown.profit)}</td>
+                          </tr>
+                          <tr className="border-t bg-green-50">
+                            <td className="px-4 py-3 font-bold text-green-800">ราคารวมทั้งสิ้น</td>
+                            <td className="px-4 py-3 text-right font-bold text-green-800">
+                              {formatCurrency(totalCosts[index])}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
 

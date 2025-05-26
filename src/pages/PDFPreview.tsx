@@ -105,6 +105,8 @@ const PDFPreview = () => {
               <p><strong>ขนาดชิ้นงาน:</strong> {quoteData.jobDetails.width} × {quoteData.jobDetails.height} {quoteData.jobDetails.sizeUnit}</p>
               <p><strong>จำนวนสี:</strong> {quoteData.jobDetails.colors} สี</p>
               <p><strong>ประเภทกระดาษ:</strong> {quoteData.jobDetails.paperType || 'ไม่ระบุ'}</p>
+              <p><strong>แกรมกระดาษ:</strong> {quoteData.jobDetails.paperGrammage} แกรม</p>
+              <p><strong>ซัพพลายเออร์:</strong> {quoteData.jobDetails.supplier}</p>
               <p><strong>ประเภทเพลท:</strong> {quoteData.jobDetails.plateType}</p>
               {quoteData.jobDetails.hasCoating && (
                 <p><strong>เคลือบ:</strong> {quoteData.jobDetails.coatingType}</p>
@@ -122,7 +124,7 @@ const PDFPreview = () => {
           </div>
         </div>
 
-        {/* Cost Summary Table */}
+        {/* Cost Summary Table for ALL quantities */}
         <div className="mb-8 print:mb-6">
           <h2 className="text-lg font-semibold mb-4">สรุปราคาตามปริมาณ</h2>
           <div className="overflow-hidden border rounded-lg">
@@ -151,83 +153,92 @@ const PDFPreview = () => {
           </div>
         </div>
 
-        {/* Detailed Cost Breakdown for first quantity */}
-        <div className="mb-8 print:mb-6">
-          <h2 className="text-lg font-semibold mb-4">รายละเอียดต้นทุน (สำหรับ {parseInt(quoteData.quantities[0]).toLocaleString()} ชิ้น)</h2>
-          <div className="overflow-hidden border rounded-lg">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium">รายการ</th>
-                  <th className="px-4 py-3 text-right font-medium">จำนวน</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-t">
-                  <td className="px-4 py-3">ต้นทุนเพลท</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].plateCost)}</td>
-                </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-3">ต้นทุนกระดาษ</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].paperCost)}</td>
-                </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-3">ต้นทุนหมึก</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].inkCost)}</td>
-                </tr>
-                {quoteData.editedBreakdowns[0].coatingCost > 0 && (
-                  <tr className="border-t">
-                    <td className="px-4 py-3">ค่าเคลือบ</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].coatingCost)}</td>
-                  </tr>
-                )}
-                {quoteData.editedBreakdowns[0].spotUvCost > 0 && (
-                  <tr className="border-t">
-                    <td className="px-4 py-3">ค่า Spot UV</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].spotUvCost)}</td>
-                  </tr>
-                )}
-                {quoteData.editedBreakdowns[0].dieCutCost > 0 && (
-                  <tr className="border-t">
-                    <td className="px-4 py-3">ค่าไดคัท</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].dieCutCost)}</td>
-                  </tr>
-                )}
-                {quoteData.editedBreakdowns[0].basePrintCost > 0 && (
-                  <tr className="border-t">
-                    <td className="px-4 py-3">ค่าพิมพ์พื้น</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].basePrintCost)}</td>
-                  </tr>
-                )}
-                {quoteData.editedBreakdowns[0].shippingCost > 0 && (
-                  <tr className="border-t">
-                    <td className="px-4 py-3">ค่าขนส่ง</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].shippingCost)}</td>
-                  </tr>
-                )}
-                {quoteData.editedBreakdowns[0].packagingCost > 0 && (
-                  <tr className="border-t">
-                    <td className="px-4 py-3">ค่าแพ็คเกจ</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].packagingCost)}</td>
-                  </tr>
-                )}
-                <tr className="border-t bg-gray-50">
-                  <td className="px-4 py-3 font-semibold">รวมต้นทุน</td>
-                  <td className="px-4 py-3 text-right font-semibold">{formatCurrency(quoteData.editedBreakdowns[0].baseCost)}</td>
-                </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-3">กำไร ({(quoteData.editedBreakdowns[0].profitMargin * 100).toFixed(0)}%)</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].profit)}</td>
-                </tr>
-                <tr className="border-t bg-green-50">
-                  <td className="px-4 py-3 font-bold text-green-800">ราคารวมทั้งสิ้น</td>
-                  <td className="px-4 py-3 text-right font-bold text-green-800">
-                    {formatCurrency(totalCosts[0])}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        {/* Detailed Cost Breakdown for ALL quantities */}
+        <div className="mb-8 print:mb-6 space-y-6">
+          {quoteData.quantities.map((qty: string, index: number) => {
+            const breakdown = quoteData.editedBreakdowns[index];
+            if (!breakdown) return null;
+
+            return (
+              <div key={index}>
+                <h2 className="text-lg font-semibold mb-4">รายละเอียดต้นทุน (สำหรับ {parseInt(qty).toLocaleString()} ชิ้น)</h2>
+                <div className="overflow-hidden border rounded-lg">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium">รายการ</th>
+                        <th className="px-4 py-3 text-right font-medium">จำนวน</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="px-4 py-3">ต้นทุนเพลท</td>
+                        <td className="px-4 py-3 text-right">{formatCurrency(breakdown.plateCost)}</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="px-4 py-3">ต้นทุนกระดาษ</td>
+                        <td className="px-4 py-3 text-right">{formatCurrency(breakdown.paperCost)}</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="px-4 py-3">ต้นทุนหมึก</td>
+                        <td className="px-4 py-3 text-right">{formatCurrency(breakdown.inkCost)}</td>
+                      </tr>
+                      {breakdown.coatingCost > 0 && (
+                        <tr className="border-t">
+                          <td className="px-4 py-3">ค่าเคลือบ</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.coatingCost)}</td>
+                        </tr>
+                      )}
+                      {breakdown.spotUvCost > 0 && (
+                        <tr className="border-t">
+                          <td className="px-4 py-3">ค่า Spot UV</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.spotUvCost)}</td>
+                        </tr>
+                      )}
+                      {breakdown.dieCutCost > 0 && (
+                        <tr className="border-t">
+                          <td className="px-4 py-3">ค่าไดคัท</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.dieCutCost)}</td>
+                        </tr>
+                      )}
+                      {breakdown.basePrintCost > 0 && (
+                        <tr className="border-t">
+                          <td className="px-4 py-3">ค่าพิมพ์พื้น</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.basePrintCost)}</td>
+                        </tr>
+                      )}
+                      {breakdown.shippingCost > 0 && (
+                        <tr className="border-t">
+                          <td className="px-4 py-3">ค่าขนส่ง</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.shippingCost)}</td>
+                        </tr>
+                      )}
+                      {breakdown.packagingCost > 0 && (
+                        <tr className="border-t">
+                          <td className="px-4 py-3">ค่าแพ็คเกจ</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.packagingCost)}</td>
+                        </tr>
+                      )}
+                      <tr className="border-t bg-gray-50">
+                        <td className="px-4 py-3 font-semibold">รวมต้นทุน</td>
+                        <td className="px-4 py-3 text-right font-semibold">{formatCurrency(breakdown.baseCost)}</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="px-4 py-3">กำไร ({(breakdown.profitMargin * 100).toFixed(0)}%)</td>
+                        <td className="px-4 py-3 text-right">{formatCurrency(breakdown.profit)}</td>
+                      </tr>
+                      <tr className="border-t bg-green-50">
+                        <td className="px-4 py-3 font-bold text-green-800">ราคารวมทั้งสิ้น</td>
+                        <td className="px-4 py-3 text-right font-bold text-green-800">
+                          {formatCurrency(totalCosts[index])}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Footer */}
