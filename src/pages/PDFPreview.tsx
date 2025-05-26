@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Download, Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -56,6 +57,61 @@ const PDFPreview = () => {
   const totalCosts = quoteData.editedBreakdowns.map((breakdown: any) => 
     breakdown.baseCost + breakdown.profit
   );
+
+  // Prepare cost items for table display
+  const costItems = [
+    {
+      name: "ต้นทุนเพลท",
+      values: quoteData.editedBreakdowns.map((b: any) => b.plateCost || 0)
+    },
+    {
+      name: "ต้นทุนกระดาษ",
+      values: quoteData.editedBreakdowns.map((b: any) => b.paperCost || 0)
+    },
+    {
+      name: "ต้นทุนหมึก",
+      values: quoteData.editedBreakdowns.map((b: any) => b.inkCost || 0)
+    },
+    ...(quoteData.editedBreakdowns[0]?.coatingCost > 0 ? [{
+      name: "ค่าเคลือบ",
+      values: quoteData.editedBreakdowns.map((b: any) => b.coatingCost || 0)
+    }] : []),
+    ...(quoteData.editedBreakdowns[0]?.spotUvCost > 0 ? [{
+      name: "ค่า Spot UV",
+      values: quoteData.editedBreakdowns.map((b: any) => b.spotUvCost || 0)
+    }] : []),
+    ...(quoteData.editedBreakdowns[0]?.dieCutCost > 0 ? [{
+      name: "ค่าไดคัท",
+      values: quoteData.editedBreakdowns.map((b: any) => b.dieCutCost || 0)
+    }] : []),
+    ...(quoteData.editedBreakdowns[0]?.basePrintCost > 0 ? [{
+      name: "ค่าพิมพ์พื้น",
+      values: quoteData.editedBreakdowns.map((b: any) => b.basePrintCost || 0)
+    }] : []),
+    ...(quoteData.editedBreakdowns[0]?.shippingCost > 0 ? [{
+      name: "ค่าขนส่ง",
+      values: quoteData.editedBreakdowns.map((b: any) => b.shippingCost || 0)
+    }] : []),
+    ...(quoteData.editedBreakdowns[0]?.packagingCost > 0 ? [{
+      name: "ค่าแพ็คเกจ",
+      values: quoteData.editedBreakdowns.map((b: any) => b.packagingCost || 0)
+    }] : []),
+    {
+      name: "รวมต้นทุน",
+      values: quoteData.editedBreakdowns.map((b: any) => b.baseCost || 0),
+      isSubtotal: true
+    },
+    {
+      name: "กำไร",
+      values: quoteData.editedBreakdowns.map((b: any) => b.profit || 0),
+      showPercentage: true
+    },
+    {
+      name: "ราคารวมทั้งสิ้น",
+      values: totalCosts,
+      isTotal: true
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-white print:bg-white">
@@ -128,117 +184,78 @@ const PDFPreview = () => {
         <div className="mb-8 print:mb-6">
           <h2 className="text-lg font-semibold mb-4">สรุปราคาตามปริมาณ</h2>
           <div className="overflow-hidden border rounded-lg">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium">ปริมาณ</th>
-                  <th className="px-4 py-3 text-right font-medium">ราคารวม</th>
-                  <th className="px-4 py-3 text-right font-medium">ราคาต่อชิ้น</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-medium">ปริมาณ</TableHead>
+                  <TableHead className="text-right font-medium">ราคารวม</TableHead>
+                  <TableHead className="text-right font-medium">ราคาต่อชิ้น</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {quoteData.quantities.map((qty: string, index: number) => (
-                  <tr key={index} className="border-t">
-                    <td className="px-4 py-3">{parseInt(qty).toLocaleString()} ชิ้น</td>
-                    <td className="px-4 py-3 text-right font-semibold">
+                  <TableRow key={index}>
+                    <TableCell>{parseInt(qty).toLocaleString()} ชิ้น</TableCell>
+                    <TableCell className="text-right font-semibold">
                       {formatCurrency(totalCosts[index])}
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    </TableCell>
+                    <TableCell className="text-right">
                       {formatCurrency(totalCosts[index] / parseInt(qty))}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
 
-        {/* Detailed Cost Breakdown for ALL quantities */}
-        <div className="mb-8 print:mb-6 space-y-6">
-          {quoteData.quantities.map((qty: string, index: number) => {
-            const breakdown = quoteData.editedBreakdowns[index];
-            if (!breakdown) return null;
-
-            return (
-              <div key={index}>
-                <h2 className="text-lg font-semibold mb-4">รายละเอียดต้นทุน (สำหรับ {parseInt(qty).toLocaleString()} ชิ้น)</h2>
-                <div className="overflow-hidden border rounded-lg">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium">รายการ</th>
-                        <th className="px-4 py-3 text-right font-medium">จำนวน</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-t">
-                        <td className="px-4 py-3">ต้นทุนเพลท</td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(breakdown.plateCost)}</td>
-                      </tr>
-                      <tr className="border-t">
-                        <td className="px-4 py-3">ต้นทุนกระดาษ</td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(breakdown.paperCost)}</td>
-                      </tr>
-                      <tr className="border-t">
-                        <td className="px-4 py-3">ต้นทุนหมึก</td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(breakdown.inkCost)}</td>
-                      </tr>
-                      {breakdown.coatingCost > 0 && (
-                        <tr className="border-t">
-                          <td className="px-4 py-3">ค่าเคลือบ</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.coatingCost)}</td>
-                        </tr>
-                      )}
-                      {breakdown.spotUvCost > 0 && (
-                        <tr className="border-t">
-                          <td className="px-4 py-3">ค่า Spot UV</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.spotUvCost)}</td>
-                        </tr>
-                      )}
-                      {breakdown.dieCutCost > 0 && (
-                        <tr className="border-t">
-                          <td className="px-4 py-3">ค่าไดคัท</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.dieCutCost)}</td>
-                        </tr>
-                      )}
-                      {breakdown.basePrintCost > 0 && (
-                        <tr className="border-t">
-                          <td className="px-4 py-3">ค่าพิมพ์พื้น</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.basePrintCost)}</td>
-                        </tr>
-                      )}
-                      {breakdown.shippingCost > 0 && (
-                        <tr className="border-t">
-                          <td className="px-4 py-3">ค่าขนส่ง</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.shippingCost)}</td>
-                        </tr>
-                      )}
-                      {breakdown.packagingCost > 0 && (
-                        <tr className="border-t">
-                          <td className="px-4 py-3">ค่าแพ็คเกจ</td>
-                          <td className="px-4 py-3 text-right">{formatCurrency(breakdown.packagingCost)}</td>
-                        </tr>
-                      )}
-                      <tr className="border-t bg-gray-50">
-                        <td className="px-4 py-3 font-semibold">รวมต้นทุน</td>
-                        <td className="px-4 py-3 text-right font-semibold">{formatCurrency(breakdown.baseCost)}</td>
-                      </tr>
-                      <tr className="border-t">
-                        <td className="px-4 py-3">กำไร ({(breakdown.profitMargin * 100).toFixed(0)}%)</td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(breakdown.profit)}</td>
-                      </tr>
-                      <tr className="border-t bg-green-50">
-                        <td className="px-4 py-3 font-bold text-green-800">ราคารวมทั้งสิ้น</td>
-                        <td className="px-4 py-3 text-right font-bold text-green-800">
-                          {formatCurrency(totalCosts[index])}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            );
-          })}
+        {/* Detailed Cost Breakdown as Single Table */}
+        <div className="mb-8 print:mb-6">
+          <h2 className="text-lg font-semibold mb-4">รายละเอียดต้นทุน</h2>
+          <div className="overflow-hidden border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="font-medium">รายการ</TableHead>
+                  {quoteData.quantities.map((qty: string, index: number) => (
+                    <TableHead key={index} className="text-right font-medium">
+                      {parseInt(qty).toLocaleString()} ชิ้น
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {costItems.map((item, itemIndex) => (
+                  <TableRow 
+                    key={itemIndex} 
+                    className={
+                      item.isSubtotal ? "bg-gray-50 font-medium" :
+                      item.isTotal ? "bg-green-50 font-bold text-green-800" :
+                      ""
+                    }
+                  >
+                    <TableCell className={item.isTotal ? "font-bold text-green-800" : "font-medium"}>
+                      {item.name}
+                      {item.showPercentage && quoteData.editedBreakdowns[0] && 
+                        ` (${(quoteData.editedBreakdowns[0].profitMargin * 100).toFixed(0)}%)`
+                      }
+                    </TableCell>
+                    {item.values.map((value: number, valueIndex: number) => (
+                      <TableCell 
+                        key={valueIndex} 
+                        className={`text-right ${
+                          item.isTotal ? "font-bold text-green-800" : 
+                          item.isSubtotal ? "font-semibold" : ""
+                        }`}
+                      >
+                        {formatCurrency(value)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {/* Footer */}
