@@ -214,7 +214,7 @@ const PrintCalculator = () => {
               colors={calc.colors}
               onColorsChange={calc.setColors}
               baseColors={calc.baseColors}
-              onBaseColorsChange={calc.setBaseColorsChange}
+              onBaseColorsChange={calc.setBaseColors}
             />
 
             {/* Paper Size Selection */}
