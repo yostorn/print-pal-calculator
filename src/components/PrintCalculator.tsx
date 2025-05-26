@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -220,7 +221,7 @@ const PrintCalculator = () => {
                       {paperSizes && paperSizes.length > 0 ? (
                         paperSizes.map((size) => (
                           <SelectItem key={size.id} value={size.id}>
-                            {size.name} ({size.width}" × {size.height"})
+                            {size.name} ({size.width}&quot; × {size.height}&quot;)
                           </SelectItem>
                         ))
                       ) : (
@@ -234,7 +235,7 @@ const PrintCalculator = () => {
                 
                 {calc.selectedPaperSize && (
                   <p className="mt-2 text-sm text-green-600">
-                    กระดาษขนาด {calc.selectedPaperSize.width}" × {calc.selectedPaperSize.height}"
+                    กระดาษขนาด {calc.selectedPaperSize.width}&quot; × {calc.selectedPaperSize.height}&quot;
                   </p>
                 )}
               </div>
