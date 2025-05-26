@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +11,7 @@ import FormulaManager from "@/components/admin/FormulaManager";
 import AdminNavigation from "@/components/admin/AdminNavigation";
 import CoatingManager from "@/components/admin/CoatingManager";
 import InkCostManager from "@/components/admin/InkCostManager";
+import PaperVariantManager from "@/components/admin/PaperVariantManager";
 
 const Admin = () => {
   return (
@@ -25,8 +27,9 @@ const Admin = () => {
             <CardTitle>ตั้งค่าระบบ</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="paper-types" className="w-full">
-              <TabsList className="grid grid-cols-4 md:grid-cols-8 mb-4">
+            <Tabs defaultValue="paper-master" className="w-full">
+              <TabsList className="grid grid-cols-4 md:grid-cols-9 mb-4">
+                <TabsTrigger value="paper-master">กระดาษ Master</TabsTrigger>
                 <TabsTrigger value="paper-types">ประเภทกระดาษ</TabsTrigger>
                 <TabsTrigger value="paper-sizes">ขนาดกระดาษ</TabsTrigger>
                 <TabsTrigger value="paper-grammage">แกรมกระดาษ</TabsTrigger>
@@ -36,6 +39,10 @@ const Admin = () => {
                 <TabsTrigger value="ink-costs">ค่าหมึก</TabsTrigger>
                 <TabsTrigger value="formulas">สูตรคำนวณ</TabsTrigger>
               </TabsList>
+              
+              <TabsContent value="paper-master">
+                <PaperVariantManager />
+              </TabsContent>
               
               <TabsContent value="paper-types">
                 <PaperTypeManager />

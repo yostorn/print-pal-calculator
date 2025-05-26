@@ -283,6 +283,77 @@ export type Database = {
         }
         Relationships: []
       }
+      paper_variant: {
+        Row: {
+          created_at: string
+          id: string
+          paper_gsm_id: string
+          paper_size_id: string
+          paper_type_id: string
+          price_per_kg: number | null
+          price_per_pack: number
+          price_per_ream: number | null
+          sheets_per_pack: number
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          paper_gsm_id: string
+          paper_size_id: string
+          paper_type_id: string
+          price_per_kg?: number | null
+          price_per_pack: number
+          price_per_ream?: number | null
+          sheets_per_pack?: number
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          paper_gsm_id?: string
+          paper_size_id?: string
+          paper_type_id?: string
+          price_per_kg?: number | null
+          price_per_pack?: number
+          price_per_ream?: number | null
+          sheets_per_pack?: number
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paper_variant_paper_gsm_id_fkey"
+            columns: ["paper_gsm_id"]
+            isOneToOne: false
+            referencedRelation: "paper_grammages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paper_variant_paper_size_id_fkey"
+            columns: ["paper_size_id"]
+            isOneToOne: false
+            referencedRelation: "paper_sizes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paper_variant_paper_type_id_fkey"
+            columns: ["paper_type_id"]
+            isOneToOne: false
+            referencedRelation: "paper_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paper_variant_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plate_costs: {
         Row: {
           cost: number

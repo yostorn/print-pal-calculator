@@ -281,3 +281,57 @@ export const deleteInkCost = async (id: string) => {
   
   return true;
 };
+
+// Paper Variant functions
+export const fetchPaperVariantForPrice = async (
+  paperTypeId: string,
+  grammageId: string,
+  sizeId: string,
+  supplierId: string
+) => {
+  console.log("Fetching paper variant for price calculation:", { paperTypeId, grammageId, sizeId, supplierId });
+  
+  const { data, error } = await supabase
+    .from('paper_variant')
+    .select(`
+      *,
+      suppliers:supplier_id(name, sheets_per_pack)
+    `)
+    .eq('paper_type_id', paperTypeId)
+    .eq('paper_gsm_id', grammageId)
+    .eq('paper_size_id', sizeId)
+    .eq('supplier_id', supplierId)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error("Error fetching paper variant:", error);
+    throw error;
+  }
+
+  console.log("Paper variant for price result:", data);
+  return data;
+};
+
+// Enhanced paper price function that tries paper_variant first, then falls back to paper_prices
+export const fetchPaperPriceEnhanced = async (paperTypeId: string, grammageId: string, sizeId: string, supplierId: string) => {
+  console.log("Fetching enhanced paper price with params:", { paperTypeId, grammageId, sizeId, supplierId });
+  
+  // First try to get from paper_variant table
+  const variantData = await fetchPaperVariantForPrice(paperTypeId, grammageId, sizeId, supplierId);
+  
+  if (variantData) {
+    console.log("Found paper variant data:", variantData);
+    return {
+      price_per_kg: variantData.price_per_kg,
+      price_per_pack: variantData.price_per_pack,
+      sheets_per_pack: variantData.sheets_per_pack,
+      suppliers: {
+        sheets_per_pack: variantData.sheets_per_pack
+      }
+    };
+  }
+  
+  // Fallback to original paper_prices table
+  console.log("Paper variant not found, falling back to paper_prices");
+  return await fetchPaperPrice(paperTypeId, grammageId, supplierId);
+};

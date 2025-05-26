@@ -7,7 +7,7 @@ import {
   fetchPaperSizes,
   fetchPaperGrammages,
   fetchSuppliers,
-  fetchPaperPrice,
+  fetchPaperPriceEnhanced,
   fetchPlateCosts,
   fetchCalculationSettings,
   fetchFormulaSettings,
@@ -381,7 +381,7 @@ export const usePrintCalculation = () => {
     // Try to get from database first
     if (paperTypeId && paperGrammageId && supplierId) {
       try {
-        const priceData = await fetchPaperPrice(paperTypeId, paperGrammageId, supplierId);
+        const priceData = await fetchPaperPriceEnhanced(paperTypeId, paperGrammageId, supplierId);
         if (priceData) {
           console.log("Found paper price in database:", priceData.price_per_kg);
           return priceData.price_per_kg;
