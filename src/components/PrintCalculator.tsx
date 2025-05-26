@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -109,7 +108,7 @@ const PrintCalculator = () => {
     }
   }, [calc.paperType, calc.selectedPaperSize, isLoadingPaperSizes]);
 
-  // Handle calculation with navigation to preview
+  // Handle calculation with navigation to detailed preview
   const handleCalculate = () => {
     console.log("Calculate button clicked - pre-calculation state:", {
       width: calc.width,
@@ -129,7 +128,7 @@ const PrintCalculator = () => {
       // Show success toast
       toast({
         title: "คำนวณเสร็จสิ้น",
-        description: "ผลการคำนวณแสดงที่ด้านขวา"
+        description: "กำลังนำไปยังหน้าตารางสรุปต้นทุน..."
       });
       
       console.log("Calculation successful - post-calculation state:", {
@@ -145,6 +144,26 @@ const PrintCalculator = () => {
         console.log("Restoring unit to:", currentUnit);
         calc.setSizeUnit(currentUnit);
       }
+
+      // Store results and navigate to detailed cost preview
+      const calculationData = {
+        results: calc.results,
+        breakdowns: calc.breakdowns,
+        quantities: calc.quantities,
+        width: calc.width,
+        height: calc.height,
+        sizeUnit: calc.sizeUnit,
+        colors: calc.colors,
+        paperType: calc.paperType,
+        plateType: calc.plateType,
+        selectedQuantityIndex: calc.selectedQuantityIndex
+      };
+
+      // Store in localStorage as backup
+      localStorage.setItem("print_calculator_results", JSON.stringify(calculationData));
+
+      // Navigate to cost preview page with data
+      navigate('/cost-preview', { state: calculationData });
     } else {
       // Show error toast
       toast({
@@ -350,7 +369,7 @@ const PrintCalculator = () => {
               onClick={handleCalculate}
               disabled={!calc.paperType || !calc.selectedPaperSize || !calc.width || !calc.height}
             >
-              คำนวณ
+              คำนวณและดูตารางสรุป
             </Button>
           </div>
 

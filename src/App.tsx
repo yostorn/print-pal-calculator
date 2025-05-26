@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import PricingPreview from "./pages/PricingPreview";
+import CostPreview from "./pages/CostPreview";
+import PDFPreview from "./pages/PDFPreview";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +23,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/preview" element={<PricingPreview />} />
+          <Route path="/cost-preview" element={<CostPreview />} />
+          <Route path="/pdf-preview" element={<PDFPreview />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
