@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { fetchPaperSizes } from "@/services/supabaseService";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Minus, Plus } from "lucide-react";
+import { AlertCircle, Minus, Plus, ArrowRight } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -108,7 +109,7 @@ const PrintCalculator = () => {
     }
   }, [calc.paperType, calc.selectedPaperSize, isLoadingPaperSizes]);
 
-  // Handle calculation with navigation to detailed preview
+  // Handle basic calculation (show results in current page)
   const handleCalculate = () => {
     console.log("Calculate button clicked - pre-calculation state:", {
       width: calc.width,
@@ -128,7 +129,7 @@ const PrintCalculator = () => {
       // Show success toast
       toast({
         title: "คำนวณเสร็จสิ้น",
-        description: "กำลังนำไปยังหน้าตารางสรุปต้นทุน..."
+        description: "ดูผลการคำนวณด้านล่าง หรือไปหน้าตารางสรุปเพื่อดูรายละเอียด"
       });
       
       console.log("Calculation successful - post-calculation state:", {
@@ -144,26 +145,6 @@ const PrintCalculator = () => {
         console.log("Restoring unit to:", currentUnit);
         calc.setSizeUnit(currentUnit);
       }
-
-      // Store results and navigate to detailed cost preview
-      const calculationData = {
-        results: calc.results,
-        breakdowns: calc.breakdowns,
-        quantities: calc.quantities,
-        width: calc.width,
-        height: calc.height,
-        sizeUnit: calc.sizeUnit,
-        colors: calc.colors,
-        paperType: calc.paperType,
-        plateType: calc.plateType,
-        selectedQuantityIndex: calc.selectedQuantityIndex
-      };
-
-      // Store in localStorage as backup
-      localStorage.setItem("print_calculator_results", JSON.stringify(calculationData));
-
-      // Navigate to cost preview page with data
-      navigate('/cost-preview', { state: calculationData });
     } else {
       // Show error toast
       toast({
@@ -174,6 +155,32 @@ const PrintCalculator = () => {
       console.log("Calculation failed:", calc.validationError);
     }
   };
+
+  // Handle navigation to detailed cost preview
+  const handleGoToSummary = () => {
+    // Store results and navigate to detailed cost preview
+    const calculationData = {
+      results: calc.results,
+      breakdowns: calc.breakdowns,
+      quantities: calc.quantities,
+      width: calc.width,
+      height: calc.height,
+      sizeUnit: calc.sizeUnit,
+      colors: calc.colors,
+      paperType: calc.paperType,
+      plateType: calc.plateType,
+      selectedQuantityIndex: calc.selectedQuantityIndex
+    };
+
+    // Store in localStorage as backup
+    localStorage.setItem("print_calculator_results", JSON.stringify(calculationData));
+
+    // Navigate to cost preview page with data
+    navigate('/cost-preview', { state: calculationData });
+  };
+
+  // Check if we have calculated results
+  const hasResults = calc.results && calc.results.length > 0;
 
   return (
     <Card className="w-full">
@@ -364,13 +371,26 @@ const PrintCalculator = () => {
               onProfitMarginChange={calc.setProfitMargin}
             />
 
-            <Button 
-              className="w-full" 
-              onClick={handleCalculate}
-              disabled={!calc.paperType || !calc.selectedPaperSize || !calc.width || !calc.height}
-            >
-              คำนวณและดูตารางสรุป
-            </Button>
+            <div className="space-y-2">
+              <Button 
+                className="w-full" 
+                onClick={handleCalculate}
+                disabled={!calc.paperType || !calc.selectedPaperSize || !calc.width || !calc.height}
+              >
+                คำนวณ
+              </Button>
+              
+              {hasResults && (
+                <Button 
+                  className="w-full" 
+                  variant="default"
+                  onClick={handleGoToSummary}
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  ไปหน้าตารางสรุปต้นทุน
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Right column - results */}
