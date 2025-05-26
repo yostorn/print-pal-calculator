@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import OptionalCostInputs from "./calculator/OptionalCostInputs";
 import QuantityInputs from "./calculator/QuantityInputs";
 import CalculationSettings from "./calculator/CalculationSettings";
 import ResultsPreview from "./calculator/ResultsPreview";
+import AdditionalCostsManager, { AdditionalCost } from "./calculator/AdditionalCostsManager";
 import { usePrintCalculation } from "@/hooks/use-print-calculation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +25,9 @@ const PrintCalculator = () => {
   const calc = usePrintCalculation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Additional costs state
+  const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
   
   // Manual adjustment for prints per sheet
   const [manualPrintCount, setManualPrintCount] = useState(calc.printPerSheet.toString());
@@ -169,7 +172,8 @@ const PrintCalculator = () => {
       colors: calc.colors,
       paperType: calc.paperType,
       plateType: calc.plateType,
-      selectedQuantityIndex: calc.selectedQuantityIndex
+      selectedQuantityIndex: calc.selectedQuantityIndex,
+      additionalCosts: additionalCosts // Include additional costs
     };
 
     // Store in localStorage as backup
@@ -210,7 +214,7 @@ const PrintCalculator = () => {
               colors={calc.colors}
               onColorsChange={calc.setColors}
               baseColors={calc.baseColors}
-              onBaseColorsChange={calc.setBaseColors}
+              onBaseColorsChange={calc.setBaseColorsChange}
             />
 
             {/* Paper Size Selection */}
@@ -352,6 +356,12 @@ const PrintCalculator = () => {
               onShippingCostChange={calc.setShippingCost}
               packagingCost={calc.packagingCost}
               onPackagingCostChange={calc.setPackagingCost}
+            />
+
+            {/* Additional Costs Manager */}
+            <AdditionalCostsManager
+              additionalCosts={additionalCosts}
+              onCostsChange={setAdditionalCosts}
             />
 
             <div className="space-y-2">
