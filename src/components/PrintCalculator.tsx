@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -274,11 +273,11 @@ const PrintCalculator = () => {
       print_per_sheet: calc.printPerSheet,
       selected_coating: calc.selectedCoating,
       selected_coating_size: calc.selectedCoatingSize,
-      has_spot_uv: Boolean(calc.hasSpotUv),
+      has_spot_uv: calc.hasSpotUv === true || calc.hasSpotUv === "true",
       selected_spot_uv_size: calc.selectedSpotUvSize,
-      has_die_cut: Boolean(calc.hasDieCut),
+      has_die_cut: calc.hasDieCut === true || calc.hasDieCut === "true",
       die_cut_cost: parseFloat(calc.dieCutCost) || 0,
-      has_base_print: Boolean(calc.hasBasePrint),
+      has_base_print: calc.hasBasePrint === true || calc.hasBasePrint === "true",
       base_print_cost: parseFloat(calc.basePrintCost) || 0,
       shipping_cost: parseFloat(calc.shippingCost) || 0,
       packaging_cost: parseFloat(calc.packagingCost) || 0,
