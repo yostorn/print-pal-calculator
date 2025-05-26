@@ -32,90 +32,92 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({
   const [editingCell, setEditingCell] = useState<{row: string, col: number} | null>(null);
   const [editValue, setEditValue] = useState("");
 
+  console.log("CostBreakdownTable - received data:", { quantities, breakdowns });
+
   // Prepare cost items from breakdowns
   const costItems: CostItem[] = [
     {
       name: "ต้นทุนเพลท",
-      costs: breakdowns.map(b => b.plateCost),
+      costs: breakdowns.map(b => b.plateCost || 0),
       formulas: breakdowns.map(b => `${b.plateType} × ${b.colorNumber} สี`),
-      explanations: breakdowns.map(b => `เพลท${b.plateType} ราคา ${formatCurrency(b.basePlateCost)} × จำนวนสี ${b.colorNumber}`),
+      explanations: breakdowns.map(b => `เพลท${b.plateType} ราคา ${formatCurrency(b.basePlateCost || 0)} × จำนวนสี ${b.colorNumber}`),
       editable: true
     },
     {
       name: "ต้นทุนกระดาษ",
-      costs: breakdowns.map(b => b.paperCost),
+      costs: breakdowns.map(b => b.paperCost || 0),
       formulas: breakdowns.map(b => "รีม × ขนาด × แกรม × ราคา"),
       explanations: breakdowns.map(b => b.formulaExplanations?.paperCostFormula?.explanation || "คำนวณจากขนาดกระดาษและจำนวนที่ใช้"),
       editable: true
     },
     {
       name: "ต้นทุนหมึก",
-      costs: breakdowns.map(b => b.inkCost),
+      costs: breakdowns.map(b => b.inkCost || 0),
       formulas: breakdowns.map(b => `หมึกปกติ ${b.normalColors} สี + หมึกตีพื้น ${b.baseColors} สี`),
-      explanations: breakdowns.map(b => `หมึกปกติ: ${formatCurrency(b.normalInkCost)} + หมึกตีพื้น: ${formatCurrency(b.baseInkCost)}`),
+      explanations: breakdowns.map(b => `หมึกปกติ: ${formatCurrency(b.normalInkCost || 0)} + หมึกตีพื้น: ${formatCurrency(b.baseInkCost || 0)}`),
       editable: true
     },
     ...(breakdowns[0]?.hasCoating ? [{
       name: "ค่าเคลือบ",
-      costs: breakdowns.map(b => b.coatingCost),
+      costs: breakdowns.map(b => b.coatingCost || 0),
       formulas: breakdowns.map(b => `${b.coatingType} × จำนวนแผ่น`),
       explanations: breakdowns.map(b => `เคลือบ${b.coatingType} × ${b.totalSheets} แผ่น`),
       editable: true
     }] : []),
     ...(breakdowns[0]?.hasSpotUv ? [{
       name: "ค่า Spot UV",
-      costs: breakdowns.map(b => b.spotUvCost),
+      costs: breakdowns.map(b => b.spotUvCost || 0),
       formulas: breakdowns.map(b => "ขนาด × จำนวนแผ่น"),
       explanations: breakdowns.map(b => `Spot UV × ${b.totalSheets} แผ่น`),
       editable: true
     }] : []),
     ...(breakdowns[0]?.hasDieCut ? [{
       name: "ค่าไดคัท",
-      costs: breakdowns.map(b => b.dieCutCost),
+      costs: breakdowns.map(b => b.dieCutCost || 0),
       formulas: breakdowns.map(() => "ค่าคงที่"),
       explanations: breakdowns.map(() => "ค่าไดคัทที่กำหนด"),
       editable: true
     }] : []),
     ...(breakdowns[0]?.hasBasePrint ? [{
       name: "ค่าพิมพ์พื้น",
-      costs: breakdowns.map(b => b.basePrintCost),
+      costs: breakdowns.map(b => b.basePrintCost || 0),
       formulas: breakdowns.map(() => "ค่าคงที่"),
       explanations: breakdowns.map(() => "ค่าพิมพ์พื้นที่กำหนด"),
       editable: true
     }] : []),
     ...(breakdowns[0]?.shippingCost > 0 ? [{
       name: "ค่าขนส่ง",
-      costs: breakdowns.map(b => b.shippingCost),
+      costs: breakdowns.map(b => b.shippingCost || 0),
       formulas: breakdowns.map(() => "ค่าคงที่"),
       explanations: breakdowns.map(() => "ค่าขนส่งที่กำหนด"),
       editable: true
     }] : []),
     ...(breakdowns[0]?.packagingCost > 0 ? [{
       name: "ค่าแพ็คเกจ",
-      costs: breakdowns.map(b => b.packagingCost),
+      costs: breakdowns.map(b => b.packagingCost || 0),
       formulas: breakdowns.map(() => "ค่าคงที่"),
       explanations: breakdowns.map(() => "ค่าแพ็คเกจที่กำหนด"),
       editable: true
     }] : []),
     {
       name: "รวมต้นทุน",
-      costs: breakdowns.map(b => b.baseCost),
+      costs: breakdowns.map(b => b.baseCost || 0),
       formulas: breakdowns.map(() => "ผลรวมทั้งหมด"),
       explanations: breakdowns.map(() => "ผลรวมของต้นทุนทั้งหมด"),
       editable: false
     },
     {
       name: "กำไร",
-      costs: breakdowns.map(b => b.profit),
-      formulas: breakdowns.map(b => `${(b.profitMargin * 100).toFixed(0)}% ของต้นทุน`),
-      explanations: breakdowns.map(b => `${(b.profitMargin * 100).toFixed(0)}% × ${formatCurrency(b.baseCost)}`),
+      costs: breakdowns.map(b => b.profit || 0),
+      formulas: breakdowns.map(b => `${((b.profitMargin || 0) * 100).toFixed(0)}% ของต้นทุน`),
+      explanations: breakdowns.map(b => `${((b.profitMargin || 0) * 100).toFixed(0)}% × ${formatCurrency(b.baseCost || 0)}`),
       editable: false
     },
     {
       name: "ราคารวม",
-      costs: breakdowns.map((b, i) => b.baseCost + b.profit),
+      costs: breakdowns.map((b, i) => (b.baseCost || 0) + (b.profit || 0)),
       formulas: breakdowns.map(() => "ต้นทุน + กำไร"),
-      explanations: breakdowns.map((b) => `${formatCurrency(b.baseCost)} + ${formatCurrency(b.profit)}`),
+      explanations: breakdowns.map((b) => `${formatCurrency(b.baseCost || 0)} + ${formatCurrency(b.profit || 0)}`),
       editable: false
     }
   ];
@@ -161,9 +163,9 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-40">รายการ</TableHead>
+                <TableHead className="w-40 font-semibold">รายการ</TableHead>
                 {quantities.map((qty, index) => (
-                  <TableHead key={index} className="text-center min-w-32">
+                  <TableHead key={index} className="text-center min-w-32 font-semibold">
                     {parseInt(qty).toLocaleString()} ชิ้น
                   </TableHead>
                 ))}
@@ -171,7 +173,11 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({
             </TableHeader>
             <TableBody>
               {costItems.map((item, rowIndex) => (
-                <TableRow key={item.name}>
+                <TableRow key={item.name} className={
+                  item.name === "รวมต้นทุน" ? "bg-gray-50 font-medium" :
+                  item.name === "ราคารวม" ? "bg-green-50 font-bold" :
+                  ""
+                }>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   {quantities.map((_, colIndex) => (
                     <TableCell key={colIndex} className="text-center">
@@ -182,7 +188,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({
                               type="number"
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
-                              className="w-20 h-8 text-xs"
+                              className="w-24 h-8 text-xs"
                               autoFocus
                             />
                             <Button
@@ -204,14 +210,16 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({
                           </div>
                         ) : (
                           <>
-                            <span className="text-sm">
-                              {formatCurrency(item.costs[colIndex])}
+                            <span className={`text-sm ${
+                              item.name === "ราคารวม" ? "font-bold text-green-700" : ""
+                            }`}>
+                              {formatCurrency(item.costs[colIndex] || 0)}
                             </span>
                             {item.editable && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => startEdit(item.name, colIndex, item.costs[colIndex])}
+                                onClick={() => startEdit(item.name, colIndex, item.costs[colIndex] || 0)}
                                 className="h-6 w-6 p-0 ml-1"
                               >
                                 <Edit2 className="h-3 w-3" />
@@ -234,7 +242,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({
                                 <div className="space-y-2">
                                   <p><strong>สูตร:</strong> {item.formulas[colIndex]}</p>
                                   <p><strong>คำอธิบาย:</strong> {item.explanations[colIndex]}</p>
-                                  <p><strong>ผลลัพธ์:</strong> {formatCurrency(item.costs[colIndex])}</p>
+                                  <p><strong>ผลลัพธ์:</strong> {formatCurrency(item.costs[colIndex] || 0)}</p>
                                 </div>
                               </DialogContent>
                             </Dialog>

@@ -104,7 +104,20 @@ const PDFPreview = () => {
             <div className="space-y-1">
               <p><strong>ขนาดชิ้นงาน:</strong> {quoteData.jobDetails.width} × {quoteData.jobDetails.height} {quoteData.jobDetails.sizeUnit}</p>
               <p><strong>จำนวนสี:</strong> {quoteData.jobDetails.colors} สี</p>
+              <p><strong>ประเภทกระดาษ:</strong> {quoteData.jobDetails.paperType || 'ไม่ระบุ'}</p>
               <p><strong>ประเภทเพลท:</strong> {quoteData.jobDetails.plateType}</p>
+              {quoteData.jobDetails.hasCoating && (
+                <p><strong>เคลือบ:</strong> {quoteData.jobDetails.coatingType}</p>
+              )}
+              {quoteData.jobDetails.hasSpotUv && (
+                <p><strong>Spot UV:</strong> มี</p>
+              )}
+              {quoteData.jobDetails.hasDieCut && (
+                <p><strong>ไดคัท:</strong> มี</p>
+              )}
+              {quoteData.jobDetails.hasBasePrint && (
+                <p><strong>พิมพ์พื้น:</strong> มี</p>
+              )}
             </div>
           </div>
         </div>
@@ -178,6 +191,24 @@ const PDFPreview = () => {
                   <tr className="border-t">
                     <td className="px-4 py-3">ค่าไดคัท</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].dieCutCost)}</td>
+                  </tr>
+                )}
+                {quoteData.editedBreakdowns[0].basePrintCost > 0 && (
+                  <tr className="border-t">
+                    <td className="px-4 py-3">ค่าพิมพ์พื้น</td>
+                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].basePrintCost)}</td>
+                  </tr>
+                )}
+                {quoteData.editedBreakdowns[0].shippingCost > 0 && (
+                  <tr className="border-t">
+                    <td className="px-4 py-3">ค่าขนส่ง</td>
+                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].shippingCost)}</td>
+                  </tr>
+                )}
+                {quoteData.editedBreakdowns[0].packagingCost > 0 && (
+                  <tr className="border-t">
+                    <td className="px-4 py-3">ค่าแพ็คเกจ</td>
+                    <td className="px-4 py-3 text-right">{formatCurrency(quoteData.editedBreakdowns[0].packagingCost)}</td>
                   </tr>
                 )}
                 <tr className="border-t bg-gray-50">

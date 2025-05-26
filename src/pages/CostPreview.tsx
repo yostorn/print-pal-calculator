@@ -109,7 +109,14 @@ const CostPreview = () => {
         sizeUnit: costData?.sizeUnit,
         colors: costData?.colors,
         paperType: costData?.paperType,
-        plateType: costData?.plateType
+        plateType: costData?.plateType,
+        hasCoating: editedBreakdowns[0]?.hasCoating,
+        coatingType: editedBreakdowns[0]?.coatingType,
+        hasSpotUv: editedBreakdowns[0]?.hasSpotUv,
+        hasDieCut: editedBreakdowns[0]?.hasDieCut,
+        hasBasePrint: editedBreakdowns[0]?.hasBasePrint,
+        shippingCost: editedBreakdowns[0]?.shippingCost > 0,
+        packagingCost: editedBreakdowns[0]?.packagingCost > 0
       }
     };
     
@@ -160,6 +167,57 @@ const CostPreview = () => {
           <h1 className="text-3xl font-bold text-gray-900">ตารางสรุปต้นทุนและราคา</h1>
           <p className="text-gray-600 mt-1">คุณสามารถแก้ไขค่าใช้จ่ายแต่ละรายการได้โดยคลิกที่ไอคอนแก้ไข</p>
         </div>
+
+        {/* Job Details Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>รายละเอียดงาน</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-600">ขนาดชิ้นงาน:</span>
+                <p className="font-semibold">{costData.width} × {costData.height} {costData.sizeUnit}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">จำนวนสี:</span>
+                <p className="font-semibold">{costData.colors} สี</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">ประเภทกระดาษ:</span>
+                <p className="font-semibold">{costData.paperType || 'ไม่ระบุ'}</p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-600">ประเภทเพลท:</span>
+                <p className="font-semibold">{costData.plateType}</p>
+              </div>
+              {editedBreakdowns[0]?.hasCoating && (
+                <div>
+                  <span className="font-medium text-gray-600">เคลือบ:</span>
+                  <p className="font-semibold">{editedBreakdowns[0].coatingType}</p>
+                </div>
+              )}
+              {editedBreakdowns[0]?.hasSpotUv && (
+                <div>
+                  <span className="font-medium text-gray-600">Spot UV:</span>
+                  <p className="font-semibold">มี</p>
+                </div>
+              )}
+              {editedBreakdowns[0]?.hasDieCut && (
+                <div>
+                  <span className="font-medium text-gray-600">ไดคัท:</span>
+                  <p className="font-semibold">มี</p>
+                </div>
+              )}
+              {editedBreakdowns[0]?.hasBasePrint && (
+                <div>
+                  <span className="font-medium text-gray-600">พิมพ์พื้น:</span>
+                  <p className="font-semibold">มี</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6">
           <CostBreakdownTable
