@@ -340,18 +340,21 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          sheets_per_pack: number
         }
         Insert: {
           contact?: string | null
           created_at?: string | null
           id?: string
           name: string
+          sheets_per_pack?: number
         }
         Update: {
           contact?: string | null
           created_at?: string | null
           id?: string
           name?: string
+          sheets_per_pack?: number
         }
         Relationships: []
       }

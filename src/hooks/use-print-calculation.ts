@@ -690,6 +690,22 @@ export const usePrintCalculation = () => {
         const paperPricePerKg = await getPaperPrice(paperType, paperGrammage, supplier);
         console.log("Paper price per kg:", paperPricePerKg);
         
+        // Get supplier data for sheets per pack
+        let sheetsPerPack = 100; // Default value
+        try {
+          const supplierData = await supabase
+            .from('suppliers')
+            .select('sheets_per_pack')
+            .eq('id', supplier)
+            .single();
+          
+          if (supplierData.data && supplierData.data.sheets_per_pack) {
+            sheetsPerPack = supplierData.data.sheets_per_pack;
+          }
+        } catch (error) {
+          console.error("Error fetching supplier sheets per pack:", error);
+        }
+        
         // Calculate paper usage with cuts per sheet - ensure cutsPerSheet is passed correctly
         const wastageNum = parseInt(wastage) || 0;
         
@@ -697,13 +713,14 @@ export const usePrintCalculation = () => {
         const actualCutsPerSheet = cutsPerSheet;
         console.log("Using cuts per sheet:", actualCutsPerSheet);
         
-        // Calculate paper usage details with the cutsPerSheet value
+        // Calculate paper usage details with the cutsPerSheet value and supplier's sheets per pack
         const paperUsage = calculatePaperUsage(
           qtyNum,
           printPerSheet,
           wastageNum,
-          actualCutsPerSheet, // Make sure cutsPerSheet is passed correctly 
-          500 // Default sheets per ream
+          actualCutsPerSheet,
+          500, // Default sheets per ream
+          sheetsPerPack // Use supplier's sheets per pack
         );
         
         console.log("Paper usage calculation:", paperUsage);
@@ -746,14 +763,20 @@ export const usePrintCalculation = () => {
         // Calculate paper cost using the formula with reams and cutsPerSheet:
         // (reams × width × height × GSM ÷ 3100 × price_per_kg)
         // The cutsPerSheet is already factored into the reamsNeeded calculation in calculatePaperUsage
-        const paperCost = calculatePaperCost(
+        const paperCostResult = calculatePaperCost(
           paperUsage.reamsNeeded, // This already accounts for cuts per sheet
           selectedPaperSize!.width,
           selectedPaperSize!.height,
           grammageValue, // Use the fetched grammage value
           paperPricePerKg,
-          conversionFactor
+          conversionFactor,
+          sheetsPerPack,
+          paperUsage.fullReams,
+          paperUsage.packsNeeded
         );
+        
+        // Extract the total cost as a number
+        const paperCost = paperCostResult.totalCost;
         
         console.log("Paper cost calculation:", {
           reams: paperUsage.reamsNeeded.toFixed(3),
@@ -765,9 +788,6 @@ export const usePrintCalculation = () => {
           cutsPerSheet: actualCutsPerSheet,
           result: paperCost
         });
-        
-        // Calculate per-sheet cost (for display purposes)
-        const sheetCost = paperCost / paperUsage.totalSheets;
         
         // Get plate cost using the user-selected plate type
         const plateCost = getPlateCost(plateType) * parseInt(colors);
@@ -869,7 +889,7 @@ export const usePrintCalculation = () => {
           totalSheets: paperUsage.totalSheets,
           masterSheetsNeeded: paperUsage.masterSheetsNeeded,
           reamsNeeded: paperUsage.reamsNeeded,
-          sheetCost,
+          sheetCost: paperCost / paperUsage.totalSheets,
           colorNumber: parseInt(colors),
           hasCoating: selectedCoating !== "none",
           coatingCost: coatingCostTotal,
