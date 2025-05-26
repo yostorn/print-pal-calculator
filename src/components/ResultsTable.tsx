@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -158,8 +157,22 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                     <div className="font-medium">ต้นทุนกระดาษ:</div>
                     <div className="text-right">{formatCurrency(breakdowns[selectedIndex].paperCost)}</div>
 
-                    <div className="font-medium">ต้นทุนหมึก:</div>
+                    <div className="font-medium">ต้นทุนหมึกรวม:</div>
                     <div className="text-right">{formatCurrency(breakdowns[selectedIndex].inkCost)}</div>
+
+                    {breakdowns[selectedIndex].normalColors > 0 && (
+                      <>
+                        <div className="font-medium text-xs pl-4">- หมึกปกติ ({breakdowns[selectedIndex].normalColors} สี):</div>
+                        <div className="text-right text-xs">{formatCurrency(breakdowns[selectedIndex].normalInkCost)}</div>
+                      </>
+                    )}
+
+                    {breakdowns[selectedIndex].baseColors > 0 && (
+                      <>
+                        <div className="font-medium text-xs pl-4">- หมึกตีพื้น ({breakdowns[selectedIndex].baseColors} สี):</div>
+                        <div className="text-right text-xs">{formatCurrency(breakdowns[selectedIndex].baseInkCost)}</div>
+                      </>
+                    )}
 
                     {breakdowns[selectedIndex].hasCoating && (
                       <>
@@ -215,6 +228,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                       )}
                       <p className="mt-1"><span className="font-medium">ประเภทเพลท:</span> {breakdowns[selectedIndex].plateType} ({formatCurrency(breakdowns[selectedIndex].basePlateCost)})</p>
                       <p className="mt-1"><span className="font-medium">จำนวนตัดกระดาษ:</span> {breakdowns[selectedIndex].cutsPerSheet} ครั้ง</p>
+                      <p className="mt-1"><span className="font-medium">การคิดค่าหมึก:</span> หมึกปกติ {breakdowns[selectedIndex].normalColors} สี + หมึกตีพื้น {breakdowns[selectedIndex].baseColors} สี (ตาม {breakdowns[selectedIndex].plateType})</p>
                     </div>
                   )}
                 </CollapsibleContent>
@@ -228,7 +242,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   className="w-full" 
                   onClick={() => setShowBreakdownDialog(true)}
                 >
-                  ดูวิธีการคำนวน
+                  ดูวิธีการคำนวณ
                 </Button>
               </div>
             </>

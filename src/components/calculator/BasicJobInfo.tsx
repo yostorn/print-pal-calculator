@@ -2,7 +2,7 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Info } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PaperTypeDropdown from "../PaperTypeDropdown";
 import PaperGrammageDropdown from "../PaperGrammageDropdown";
 import SupplierDropdown from "../SupplierDropdown";
@@ -21,9 +21,11 @@ interface BasicJobInfoProps {
   height: string;
   onWidthChange: (value: string) => void;
   onHeightChange: (value: string) => void;
-  onUnitChange: (value: "cm" | "inch") => void;
+  onUnitChange: (unit: "cm" | "inch") => void;
   colors: string;
   onColorsChange: (value: string) => void;
+  baseColors?: string;
+  onBaseColorsChange?: (value: string) => void;
 }
 
 const BasicJobInfo: React.FC<BasicJobInfoProps> = ({
@@ -42,37 +44,52 @@ const BasicJobInfo: React.FC<BasicJobInfoProps> = ({
   onUnitChange,
   colors,
   onColorsChange,
+  baseColors = "0",
+  onBaseColorsChange
 }) => {
+  const handleColorsChange = (value: string) => {
+    onColorsChange(value);
+    // Reset base colors if it exceeds total colors
+    if (onBaseColorsChange && parseInt(baseColors) > parseInt(value)) {
+      onBaseColorsChange("0");
+    }
+  };
+
+  const handleBaseColorsChange = (value: string) => {
+    if (onBaseColorsChange) {
+      // Ensure base colors doesn't exceed total colors
+      const maxBaseColors = parseInt(colors) || 0;
+      const newBaseColors = Math.min(parseInt(value) || 0, maxBaseColors);
+      onBaseColorsChange(newBaseColors.toString());
+    }
+  };
+
   return (
-    <>
-      <div className="space-y-2">
-        <div className="flex items-center gap-1">
-          <Label htmlFor="jobType">ประเภทงาน</Label>
-          <div className="tooltip">
-            <Info className="h-4 w-4 text-gray-400" />
-            <span className="tooltiptext">ระบุประเภทของงานพิมพ์</span>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div>
+        <Label htmlFor="jobType">ประเภทงาน</Label>
         <Input
           id="jobType"
-          placeholder="ระบุประเภทงาน"
+          placeholder="เช่น นามบัตร, โบรชัวร์"
           value={jobType}
           onChange={(e) => onJobTypeChange(e.target.value)}
         />
       </div>
 
-      <PaperTypeDropdown value={paperType} onChange={onPaperTypeChange} />
+      <PaperTypeDropdown
+        selectedPaperType={paperType}
+        onPaperTypeChange={onPaperTypeChange}
+      />
 
       <PaperGrammageDropdown
-        value={paperGrammage}
-        onChange={onPaperGrammageChange}
-        paperType={paperType}
+        selectedPaperType={paperType}
+        selectedGrammage={paperGrammage}
+        onGrammageChange={onPaperGrammageChange}
       />
 
       <SupplierDropdown
-        value={supplier}
-        onChange={onSupplierChange}
-        paperType={paperType}
+        selectedSupplier={supplier}
+        onSupplierChange={onSupplierChange}
       />
 
       <SizeInputs
@@ -83,23 +100,43 @@ const BasicJobInfo: React.FC<BasicJobInfoProps> = ({
         onUnitChange={onUnitChange}
       />
 
-      <div className="space-y-2">
-        <div className="flex items-center gap-1">
-          <Label htmlFor="colors">จำนวนสีพิมพ์</Label>
-          <div className="tooltip">
-            <Info className="h-4 w-4 text-gray-400" />
-            <span className="tooltiptext">ระบุจำนวนสีที่ใช้ในการพิมพ์</span>
-          </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="colors">จำนวนสีทั้งหมด</Label>
+          <Select value={colors} onValueChange={handleColorsChange}>
+            <SelectTrigger id="colors">
+              <SelectValue placeholder="เลือกจำนวนสี" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 สี</SelectItem>
+              <SelectItem value="2">2 สี</SelectItem>
+              <SelectItem value="3">3 สี</SelectItem>
+              <SelectItem value="4">4 สี</SelectItem>
+              <SelectItem value="5">5 สี</SelectItem>
+              <SelectItem value="6">6 สี</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Input
-          id="colors"
-          type="number"
-          min="1"
-          value={colors}
-          onChange={(e) => onColorsChange(e.target.value)}
-        />
+
+        {onBaseColorsChange && (
+          <div>
+            <Label htmlFor="baseColors">จำนวนสีตีพื้น</Label>
+            <Select value={baseColors} onValueChange={handleBaseColorsChange}>
+              <SelectTrigger id="baseColors">
+                <SelectValue placeholder="เลือกจำนวนสีตีพื้น" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: parseInt(colors) + 1 }, (_, i) => (
+                  <SelectItem key={i} value={i.toString()}>
+                    {i} สี
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

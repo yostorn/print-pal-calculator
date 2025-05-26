@@ -198,6 +198,16 @@ export const fetchCoatingSizes = async (coatingTypeId?: string) => {
   return data;
 };
 
+// Ink Costs
+export const fetchInkCosts = async () => {
+  const { data, error } = await supabase
+    .from('ink_costs')
+    .select('*');
+  
+  if (error) throw error;
+  return data;
+};
+
 // Spot UV Costs
 export const fetchSpotUvCosts = async () => {
   const { data, error } = await supabase

@@ -116,6 +116,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ink_costs: {
+        Row: {
+          cost_per_sheet: number
+          created_at: string
+          id: string
+          ink_category: string
+          minimum_cost: number
+          plate_type: string
+          updated_at: string
+        }
+        Insert: {
+          cost_per_sheet?: number
+          created_at?: string
+          id?: string
+          ink_category: string
+          minimum_cost?: number
+          plate_type: string
+          updated_at?: string
+        }
+        Update: {
+          cost_per_sheet?: number
+          created_at?: string
+          id?: string
+          ink_category?: string
+          minimum_cost?: number
+          plate_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       paper_grammages: {
         Row: {
           created_at: string | null

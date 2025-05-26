@@ -13,7 +13,8 @@ import {
   fetchFormulaSettings,
   fetchCoatingTypes,
   fetchCoatingSizes,
-  fetchSpotUvCosts
+  fetchSpotUvCosts,
+  fetchInkCosts
 } from "@/services/supabaseService";
 import { calculateLayout } from "@/utils/layoutCalculations";
 import { calculatePaperUsage, calculatePaperCost } from "@/lib/utils";
@@ -56,6 +57,7 @@ export const usePrintCalculation = () => {
   const [height, setHeight] = useState(savedState?.height || "");
   const [sizeUnit, setSizeUnit] = useState<"cm" | "inch">(savedState?.sizeUnit || "cm");
   const [colors, setColors] = useState(savedState?.colors || "4");
+  const [baseColors, setBaseColors] = useState(savedState?.baseColors || "0"); // New field for ตีพื้น
   const [selectedCoating, setSelectedCoating] = useState(savedState?.selectedCoating || "none");
   const [selectedCoatingSize, setSelectedCoatingSize] = useState(savedState?.selectedCoatingSize || "");
   const [hasSpotUv, setHasSpotUv] = useState(savedState?.hasSpotUv || false);
@@ -101,6 +103,7 @@ export const usePrintCalculation = () => {
         height,
         sizeUnit,
         colors,
+        baseColors,
         selectedCoating,
         selectedCoatingSize,
         hasSpotUv,
@@ -133,6 +136,7 @@ export const usePrintCalculation = () => {
   const setHeightAndSave = updateAndSave(setHeight);
   const setSizeUnitAndSave = updateAndSave(setSizeUnit);
   const setColorsAndSave = updateAndSave(setColors);
+  const setBaseColorsAndSave = updateAndSave(setBaseColors); // New setter for base colors
   const setSelectedCoatingAndSave = updateAndSave(setSelectedCoating);
   const setSelectedCoatingSizeAndSave = updateAndSave(setSelectedCoatingSize);
   const setHasSpotUvAndSave = updateAndSave(setHasSpotUv);
@@ -546,6 +550,20 @@ export const usePrintCalculation = () => {
     }
   };
 
+  // Get ink cost from database
+  const getInkCost = (plateType: string, inkCategory: 'หมึกปกติ' | 'หมึกตีพื้น', totalSheets: number) => {
+    if (!inkCosts) return 0;
+    
+    const inkCost = inkCosts.find(cost => 
+      cost.plate_type === plateType && cost.ink_category === inkCategory
+    );
+    
+    if (!inkCost) return 0;
+    
+    const calculatedCost = totalSheets * inkCost.cost_per_sheet;
+    return Math.max(calculatedCost, inkCost.minimum_cost);
+  };
+
   // Improved validation with better error messages and logging
   const validateForm = () => {
     console.log("Validating form with:", {
@@ -626,11 +644,11 @@ export const usePrintCalculation = () => {
     }
   };
 
-  // Calculate results with the correct coating cost formula
+  // Calculate results with the new ink cost calculation
   const calculate = async () => {
     console.log("Starting calculation with values:", {
       paperType, paperGrammage, supplier, width, height, printPerSheet, quantities, plateType, sizeUnit,
-      selectedCoating, selectedCoatingSize, hasSpotUv, selectedSpotUvSize
+      selectedCoating, selectedCoatingSize, hasSpotUv, selectedSpotUvSize, colors, baseColors
     });
 
     // Store the current unit before calculation to ensure we can restore it later
@@ -761,13 +779,24 @@ export const usePrintCalculation = () => {
         
         console.log("Coating cost:", coatingCostTotal, "Spot UV cost:", spotUvCostTotal);
         
-        // Calculate ink cost 
-        const inkCostPerColor = formulaSettings?.inkCostPerColor 
-          ? parseFloat(formulaSettings.inkCostPerColor) 
-          : 0.5;
+        // Calculate new ink costs
+        const totalColors = parseInt(colors);
+        const totalBaseColors = parseInt(baseColors);
+        const normalColors = totalColors - totalBaseColors;
         
-        const inkCostPerSheet = parseInt(colors) * inkCostPerColor;
-        const inkCost = paperUsage.totalSheets * inkCostPerSheet;
+        // Calculate normal ink cost
+        const normalInkCost = normalColors > 0 
+          ? getInkCost(plateType, 'หมึกปกติ', paperUsage.totalSheets) * normalColors
+          : 0;
+        
+        // Calculate base ink cost
+        const baseInkCost = totalBaseColors > 0 
+          ? getInkCost(plateType, 'หมึกตีพื้น', paperUsage.totalSheets) * totalBaseColors
+          : 0;
+        
+        const totalInkCost = normalInkCost + baseInkCost;
+        
+        console.log("Ink costs:", { normalColors, totalBaseColors, normalInkCost, baseInkCost, totalInkCost });
         
         // Calculate base print cost if applicable
         const basePrintCostTotal = hasBasePrint ? parseFloat(basePrintCost || "0") : 0;
@@ -780,7 +809,7 @@ export const usePrintCalculation = () => {
         const packagingCostTotal = parseFloat(packagingCost || "0");
         
         // Calculate total cost before profit
-        const baseCost = plateCost + paperCost + inkCost + coatingCostTotal + spotUvCostTotal +
+        const baseCost = plateCost + paperCost + totalInkCost + coatingCostTotal + spotUvCostTotal +
                         basePrintCostTotal + dieCutCostTotal + 
                         shippingCostTotal + packagingCostTotal;
         
@@ -825,7 +854,11 @@ export const usePrintCalculation = () => {
           plateType,
           plateCost,
           paperCost,
-          inkCost,
+          inkCost: totalInkCost,
+          normalInkCost,
+          baseInkCost,
+          normalColors,
+          baseColors: totalBaseColors,
           basePlateCost: getPlateCost(plateType),
           totalSheets: paperUsage.totalSheets,
           masterSheetsNeeded: paperUsage.masterSheetsNeeded,
@@ -939,6 +972,7 @@ export const usePrintCalculation = () => {
     height, setHeight: setHeightAndSave,
     sizeUnit, setSizeUnit: setSizeUnitAndSave,
     colors, setColors: setColorsAndSave,
+    baseColors, setBaseColors: setBaseColorsAndSave,
     selectedCoating, setSelectedCoating: setSelectedCoatingAndSave,
     selectedCoatingSize, setSelectedCoatingSize: setSelectedCoatingSizeAndSave,
     hasSpotUv, setHasSpotUv: setHasSpotUvAndSave,
@@ -971,6 +1005,7 @@ export const usePrintCalculation = () => {
     paperSizes,
     plateCosts,
     settings,
+    inkCosts,
     
     // Functions
     handleLayoutChange,
