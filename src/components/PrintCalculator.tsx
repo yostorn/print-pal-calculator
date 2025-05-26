@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,11 +71,11 @@ const PrintCalculator = () => {
       if (jobData.has_spot_uv !== undefined) calc.setHasSpotUv(jobData.has_spot_uv);
       if (jobData.selected_spot_uv_size) calc.setSelectedSpotUvSize(jobData.selected_spot_uv_size);
       if (jobData.has_die_cut !== undefined) calc.setHasDieCut(jobData.has_die_cut);
-      if (jobData.die_cut_cost) calc.setDieCutCost(jobData.die_cut_cost);
+      if (jobData.die_cut_cost) calc.setDieCutCost(jobData.die_cut_cost.toString());
       if (jobData.has_base_print !== undefined) calc.setHasBasePrint(jobData.has_base_print);
-      if (jobData.base_print_cost) calc.setBasePrintCost(jobData.base_print_cost);
-      if (jobData.shipping_cost) calc.setShippingCost(jobData.shipping_cost);
-      if (jobData.packaging_cost) calc.setPackagingCost(jobData.packaging_cost);
+      if (jobData.base_print_cost) calc.setBasePrintCost(jobData.base_print_cost.toString());
+      if (jobData.shipping_cost) calc.setShippingCost(jobData.shipping_cost.toString());
+      if (jobData.packaging_cost) calc.setPackagingCost(jobData.packaging_cost.toString());
       if (jobData.additional_costs) setAdditionalCosts(jobData.additional_costs);
       if (jobData.quantities) {
         // Convert numbers to strings if needed
@@ -277,11 +276,11 @@ const PrintCalculator = () => {
       has_spot_uv: calc.hasSpotUv,
       selected_spot_uv_size: calc.selectedSpotUvSize,
       has_die_cut: calc.hasDieCut,
-      die_cut_cost: calc.dieCutCost,
+      die_cut_cost: parseFloat(calc.dieCutCost) || 0,
       has_base_print: calc.hasBasePrint,
-      base_print_cost: calc.basePrintCost,
-      shipping_cost: calc.shippingCost,
-      packaging_cost: calc.packagingCost,
+      base_print_cost: parseFloat(calc.basePrintCost) || 0,
+      shipping_cost: parseFloat(calc.shippingCost) || 0,
+      packaging_cost: parseFloat(calc.packagingCost) || 0,
       additional_costs: additionalCosts,
       quantities: calc.quantities,
       wastage: calc.wastage,
