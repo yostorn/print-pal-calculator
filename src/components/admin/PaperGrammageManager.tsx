@@ -1,52 +1,62 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPaperTypes, fetchPaperGrammages } from "@/services/supabaseService";
 
 interface PaperGrammage {
   id: string;
-  paperType: string;
+  paper_type_id: string;
   grammage: string;
   label: string;
 }
 
 const PaperGrammageManager = () => {
   const { toast } = useToast();
-  const [paperTypes] = useState([
-    { id: "art-card", label: "Art Card" },
-    { id: "art-paper", label: "Art Paper" },
-    { id: "woodfree", label: "Woodfree" },
-    { id: "newsprint", label: "Newsprint" }
-  ]);
-  
-  const [paperGrammages, setPaperGrammages] = useState<PaperGrammage[]>([
-    { id: "1", paperType: "art-card", grammage: "210", label: "210 gsm" },
-    { id: "2", paperType: "art-card", grammage: "230", label: "230 gsm" },
-    { id: "3", paperType: "art-card", grammage: "250", label: "250 gsm" },
-    { id: "4", paperType: "art-card", grammage: "300", label: "300 gsm" },
-    { id: "5", paperType: "art-paper", grammage: "80", label: "80 gsm" },
-    { id: "6", paperType: "art-paper", grammage: "90", label: "90 gsm" },
-    { id: "7", paperType: "art-paper", grammage: "100", label: "100 gsm" },
-    { id: "8", paperType: "art-paper", grammage: "120", label: "120 gsm" }
-  ]);
-  
+  const [paperGrammages, setPaperGrammages] = useState<PaperGrammage[]>([]);
   const [newPaperGrammage, setNewPaperGrammage] = useState<Omit<PaperGrammage, 'id'>>({
-    paperType: "",
+    paper_type_id: "",
     grammage: "",
     label: ""
   });
-  
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState("");
   const [selectedPaperType, setSelectedPaperType] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleAddOrUpdate = () => {
-    if (!newPaperGrammage.paperType || !newPaperGrammage.grammage) {
+  // Fetch paper types from database
+  const { data: paperTypes = [] } = useQuery({
+    queryKey: ['paperTypes'],
+    queryFn: fetchPaperTypes
+  });
+
+  // Load paper grammages from database
+  const loadPaperGrammages = async () => {
+    try {
+      const data = await fetchPaperGrammages();
+      setPaperGrammages(data);
+    } catch (error) {
+      console.error("Error loading paper grammages:", error);
+      toast({
+        title: "ไม่สามารถโหลดข้อมูลแกรมกระดาษได้",
+        description: "กรุณาลองอีกครั้งในภายหลัง"
+      });
+    }
+  };
+
+  useEffect(() => {
+    loadPaperGrammages();
+  }, []);
+
+  const handleAddOrUpdate = async () => {
+    if (!newPaperGrammage.paper_type_id || !newPaperGrammage.grammage) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
         description: "กรุณาระบุประเภทกระดาษและแกรมกระดาษ"
@@ -55,36 +65,74 @@ const PaperGrammageManager = () => {
     }
 
     const gramLabel = newPaperGrammage.label || `${newPaperGrammage.grammage} gsm`;
+    setLoading(true);
 
-    if (editMode) {
-      setPaperGrammages(paperGrammages.map(gram => 
-        gram.id === editId ? { ...gram, ...newPaperGrammage, label: gramLabel } : gram
-      ));
+    try {
+      if (editMode) {
+        // Update existing paper grammage
+        const { error } = await supabase
+          .from('paper_grammages')
+          .update({
+            paper_type_id: newPaperGrammage.paper_type_id,
+            grammage: newPaperGrammage.grammage,
+            label: gramLabel
+          })
+          .eq('id', editId);
+
+        if (error) throw error;
+
+        setPaperGrammages(paperGrammages.map(gram => 
+          gram.id === editId ? { ...gram, ...newPaperGrammage, label: gramLabel } : gram
+        ));
+        
+        toast({
+          title: "แก้ไขแกรมกระดาษเรียบร้อย",
+          description: `แกรมกระดาษ "${gramLabel}" ถูกอัปเดตแล้ว`
+        });
+        
+        setEditMode(false);
+        setEditId("");
+      } else {
+        // Add new paper grammage
+        const { data, error } = await supabase
+          .from('paper_grammages')
+          .insert({
+            paper_type_id: newPaperGrammage.paper_type_id,
+            grammage: newPaperGrammage.grammage,
+            label: gramLabel
+          })
+          .select();
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setPaperGrammages([...paperGrammages, data[0] as PaperGrammage]);
+          
+          toast({
+            title: "เพิ่มแกรมกระดาษเรียบร้อย",
+            description: `แกรมกระดาษ "${gramLabel}" ถูกเพิ่มแล้ว`
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error("Error saving paper grammage:", error);
       toast({
-        title: "แก้ไขแกรมกระดาษเรียบร้อย",
-        description: `แกรมกระดาษ "${gramLabel}" ถูกอัปเดตแล้ว`
+        title: "เกิดข้อผิดพลาด",
+        description: error.message || "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองอีกครั้ง"
       });
-      setEditMode(false);
-      setEditId("");
-    } else {
-      const newId = (paperGrammages.length + 1).toString();
-      setPaperGrammages([...paperGrammages, { id: newId, ...newPaperGrammage, label: gramLabel }]);
-      toast({
-        title: "เพิ่มแกรมกระดาษเรียบร้อย",
-        description: `แกรมกระดาษ "${gramLabel}" ถูกเพิ่มแล้ว`
+    } finally {
+      setLoading(false);
+      setNewPaperGrammage({
+        paper_type_id: "",
+        grammage: "",
+        label: ""
       });
     }
-    
-    setNewPaperGrammage({
-      paperType: "",
-      grammage: "",
-      label: ""
-    });
   };
 
   const handleEdit = (grammage: PaperGrammage) => {
     setNewPaperGrammage({
-      paperType: grammage.paperType,
+      paper_type_id: grammage.paper_type_id,
       grammage: grammage.grammage,
       label: grammage.label
     });
@@ -92,16 +140,57 @@ const PaperGrammageManager = () => {
     setEditId(grammage.id);
   };
 
-  const handleDelete = (id: string) => {
-    setPaperGrammages(paperGrammages.filter(gram => gram.id !== id));
-    toast({
-      title: "ลบแกรมกระดาษเรียบร้อย",
-      description: "แกรมกระดาษถูกลบออกจากระบบแล้ว"
-    });
+  const handleDelete = async (id: string) => {
+    if (!confirm("คุณต้องการลบแกรมกระดาษนี้หรือไม่?")) return;
+    
+    try {
+      setLoading(true);
+      
+      // Check if this grammage is referenced by paper variants
+      const { data: paperVariants, error: paperVariantsError } = await supabase
+        .from('paper_variant')
+        .select('id')
+        .eq('paper_gsm_id', id)
+        .limit(1);
+        
+      if (paperVariantsError) throw paperVariantsError;
+      
+      if (paperVariants && paperVariants.length > 0) {
+        toast({
+          title: "ไม่สามารถลบได้",
+          description: "แกรมกระดาษนี้กำลังถูกใช้งานโดยข้อมูลกระดาษ"
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Delete the paper grammage
+      const { error } = await supabase
+        .from('paper_grammages')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setPaperGrammages(paperGrammages.filter(gram => gram.id !== id));
+      
+      toast({
+        title: "ลบแกรมกระดาษเรียบร้อย",
+        description: "แกรมกระดาษถูกลบออกจากระบบแล้ว"
+      });
+    } catch (error: any) {
+      console.error("Error deleting paper grammage:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: error.message || "ไม่สามารถลบข้อมูลได้ กรุณาลองอีกครั้ง"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredPaperGrammages = selectedPaperType 
-    ? paperGrammages.filter(gram => gram.paperType === selectedPaperType)
+    ? paperGrammages.filter(gram => gram.paper_type_id === selectedPaperType)
     : paperGrammages;
 
   return (
@@ -115,8 +204,9 @@ const PaperGrammageManager = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-4">
             <Select 
-              value={newPaperGrammage.paperType} 
-              onValueChange={(value) => setNewPaperGrammage({...newPaperGrammage, paperType: value})}
+              value={newPaperGrammage.paper_type_id} 
+              onValueChange={(value) => setNewPaperGrammage({...newPaperGrammage, paper_type_id: value})}
+              disabled={loading}
             >
               <SelectTrigger>
                 <SelectValue placeholder="เลือกประเภทกระดาษ" />
@@ -132,16 +222,22 @@ const PaperGrammageManager = () => {
               placeholder="แกรม (gsm)" 
               value={newPaperGrammage.grammage} 
               onChange={(e) => setNewPaperGrammage({...newPaperGrammage, grammage: e.target.value})}
+              disabled={loading}
             />
             
             <Input 
               placeholder="ป้ายกำกับ (ถ้าไม่ระบุจะใช้แกรม)" 
               value={newPaperGrammage.label} 
               onChange={(e) => setNewPaperGrammage({...newPaperGrammage, label: e.target.value})}
+              disabled={loading}
             />
             
-            <Button onClick={handleAddOrUpdate}>
-              {editMode ? "อัปเดต" : "เพิ่ม"}
+            <Button onClick={handleAddOrUpdate} disabled={loading}>
+              {loading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> กำลังบันทึก...</>
+              ) : (
+                <><Plus className="h-4 w-4 mr-2" /> {editMode ? "อัปเดต" : "เพิ่ม"}</>
+              )}
             </Button>
           </div>
 
@@ -170,25 +266,43 @@ const PaperGrammageManager = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPaperGrammages.map((gram) => (
-              <TableRow key={gram.id}>
-                <TableCell>
-                  {paperTypes.find(type => type.id === gram.paperType)?.label || gram.paperType}
-                </TableCell>
-                <TableCell>{gram.grammage}</TableCell>
-                <TableCell>{gram.label}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleEdit(gram)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleDelete(gram.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {filteredPaperGrammages.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                  ยังไม่มีข้อมูลแกรมกระดาษ
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredPaperGrammages.map((gram) => (
+                <TableRow key={gram.id}>
+                  <TableCell>
+                    {paperTypes.find(type => type.id === gram.paper_type_id)?.label || gram.paper_type_id}
+                  </TableCell>
+                  <TableCell>{gram.grammage}</TableCell>
+                  <TableCell>{gram.label}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => handleEdit(gram)}
+                        disabled={loading}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => handleDelete(gram.id)}
+                        disabled={loading}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>
