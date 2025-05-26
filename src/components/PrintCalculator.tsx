@@ -68,11 +68,11 @@ const PrintCalculator = () => {
       if (jobData.print_per_sheet) calc.setPrintPerSheet(jobData.print_per_sheet);
       if (jobData.selected_coating) calc.setSelectedCoating(jobData.selected_coating);
       if (jobData.selected_coating_size) calc.setSelectedCoatingSize(jobData.selected_coating_size);
-      if (jobData.has_spot_uv !== undefined) calc.setHasSpotUv(jobData.has_spot_uv === true || jobData.has_spot_uv === "true");
+      if (jobData.has_spot_uv !== undefined) calc.setHasSpotUv(!!jobData.has_spot_uv);
       if (jobData.selected_spot_uv_size) calc.setSelectedSpotUvSize(jobData.selected_spot_uv_size);
-      if (jobData.has_die_cut !== undefined) calc.setHasDieCut(jobData.has_die_cut === true || jobData.has_die_cut === "true");
+      if (jobData.has_die_cut !== undefined) calc.setHasDieCut(!!jobData.has_die_cut);
       if (jobData.die_cut_cost) calc.setDieCutCost(jobData.die_cut_cost.toString());
-      if (jobData.has_base_print !== undefined) calc.setHasBasePrint(jobData.has_base_print === true || jobData.has_base_print === "true");
+      if (jobData.has_base_print !== undefined) calc.setHasBasePrint(!!jobData.has_base_print);
       if (jobData.base_print_cost) calc.setBasePrintCost(jobData.base_print_cost.toString());
       if (jobData.shipping_cost) calc.setShippingCost(jobData.shipping_cost.toString());
       if (jobData.packaging_cost) calc.setPackagingCost(jobData.packaging_cost.toString());
@@ -273,11 +273,11 @@ const PrintCalculator = () => {
       print_per_sheet: calc.printPerSheet,
       selected_coating: calc.selectedCoating,
       selected_coating_size: calc.selectedCoatingSize,
-      has_spot_uv: calc.hasSpotUv === true || calc.hasSpotUv === "true",
+      has_spot_uv: !!calc.hasSpotUv,
       selected_spot_uv_size: calc.selectedSpotUvSize,
-      has_die_cut: calc.hasDieCut === true || calc.hasDieCut === "true",
+      has_die_cut: !!calc.hasDieCut,
       die_cut_cost: parseFloat(calc.dieCutCost) || 0,
-      has_base_print: calc.hasBasePrint === true || calc.hasBasePrint === "true",
+      has_base_print: !!calc.hasBasePrint,
       base_print_cost: parseFloat(calc.basePrintCost) || 0,
       shipping_cost: parseFloat(calc.shippingCost) || 0,
       packaging_cost: parseFloat(calc.packagingCost) || 0,
