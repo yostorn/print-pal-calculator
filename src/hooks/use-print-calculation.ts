@@ -890,7 +890,6 @@ export const usePrintCalculation = () => {
           paperUsage,
           formulaExplanations,
           conversionFactor,
-          inkCostPerColor,
           paperSize: selectedPaperSize,
           grammage: grammageValue,
           pricePerKg: paperPricePerKg
