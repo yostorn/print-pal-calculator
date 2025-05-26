@@ -1,7 +1,11 @@
+
 import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ValidationError from "./calculator/ValidationError";
 import BasicJobInfo from "./calculator/BasicJobInfo";
+import JobBasicInfo from "./calculator/JobBasicInfo";
+import JobActions from "./calculator/JobActions";
 import CoatingOptions from "./CoatingOptions";
 import OptionalCostInputs from "./calculator/OptionalCostInputs";
 import QuantityInputs from "./calculator/QuantityInputs";
@@ -13,22 +17,96 @@ import PlateTypeSelection from "./calculator/PlateTypeSelection";
 import PrintsPerSheetAdjustment from "./calculator/PrintsPerSheetAdjustment";
 import CalculationActions from "./calculator/CalculationActions";
 import { usePrintCalculation } from "@/hooks/use-print-calculation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchPaperSizes } from "@/services/supabaseService";
-import { useNavigate } from "react-router-dom";
+import { createJob, updateJob, Job } from "@/services/jobService";
 import { useToast } from "@/hooks/use-toast";
 import SpotUvOptions from "./SpotUvOptions";
 
 const PrintCalculator = () => {
   const calc = usePrintCalculation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Job management state
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [jobName, setJobName] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [quoteBy, setQuoteBy] = useState("");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   // Additional costs state
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
   
   // Manual adjustment for prints per sheet
   const [manualPrintCount, setManualPrintCount] = useState(calc.printPerSheet.toString());
+
+  // Load job data if passed from Jobs page
+  useEffect(() => {
+    const jobData = location.state?.jobData as Job;
+    if (jobData) {
+      console.log("Loading job data:", jobData);
+      
+      setCurrentJobId(jobData.id);
+      setJobName(jobData.job_name);
+      setCustomerName(jobData.customer_name);
+      setQuoteBy(jobData.quote_by);
+      
+      // Load calculator state
+      if (jobData.job_type) calc.setJobType(jobData.job_type);
+      if (jobData.paper_type) calc.setPaperType(jobData.paper_type);
+      if (jobData.paper_grammage) calc.setPaperGrammage(jobData.paper_grammage);
+      if (jobData.supplier) calc.setSupplier(jobData.supplier);
+      if (jobData.width) calc.setWidth(jobData.width);
+      if (jobData.height) calc.setHeight(jobData.height);
+      if (jobData.size_unit) calc.setSizeUnit(jobData.size_unit);
+      if (jobData.colors) calc.setColors(jobData.colors);
+      if (jobData.base_colors) calc.setBaseColors(jobData.base_colors);
+      if (jobData.selected_paper_size) calc.setSelectedPaperSize(jobData.selected_paper_size);
+      if (jobData.plate_type) calc.setPlateType(jobData.plate_type);
+      if (jobData.print_per_sheet) calc.setPrintPerSheet(jobData.print_per_sheet);
+      if (jobData.selected_coating) calc.setSelectedCoating(jobData.selected_coating);
+      if (jobData.selected_coating_size) calc.setSelectedCoatingSize(jobData.selected_coating_size);
+      if (jobData.has_spot_uv !== undefined) calc.setHasSpotUv(jobData.has_spot_uv);
+      if (jobData.selected_spot_uv_size) calc.setSelectedSpotUvSize(jobData.selected_spot_uv_size);
+      if (jobData.has_die_cut !== undefined) calc.setHasDieCut(jobData.has_die_cut);
+      if (jobData.die_cut_cost) calc.setDieCutCost(jobData.die_cut_cost);
+      if (jobData.has_base_print !== undefined) calc.setHasBasePrint(jobData.has_base_print);
+      if (jobData.base_print_cost) calc.setBasePrintCost(jobData.base_print_cost);
+      if (jobData.shipping_cost) calc.setShippingCost(jobData.shipping_cost);
+      if (jobData.packaging_cost) calc.setPackagingCost(jobData.packaging_cost);
+      if (jobData.additional_costs) setAdditionalCosts(jobData.additional_costs);
+      if (jobData.quantities) calc.setQuantities(jobData.quantities);
+      if (jobData.wastage) calc.setWastage(jobData.wastage);
+      if (jobData.profit_margin) calc.setProfitMargin(jobData.profit_margin);
+      if (jobData.results) calc.setResults(jobData.results);
+      if (jobData.breakdowns) calc.setBreakdowns(jobData.breakdowns);
+      if (jobData.selected_quantity_index) calc.setSelectedQuantityIndex(jobData.selected_quantity_index);
+      
+      setHasUnsavedChanges(false);
+      
+      // Clear the location state to prevent re-loading
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state]);
+
+  // Track changes to mark as unsaved
+  useEffect(() => {
+    if (currentJobId) {
+      setHasUnsavedChanges(true);
+    }
+  }, [
+    jobName, customerName, quoteBy,
+    calc.jobType, calc.paperType, calc.paperGrammage, calc.supplier,
+    calc.width, calc.height, calc.colors, calc.baseColors,
+    calc.plateType, calc.printPerSheet, calc.selectedCoating,
+    calc.selectedCoatingSize, calc.hasSpotUv, calc.selectedSpotUvSize,
+    calc.hasDieCut, calc.dieCutCost, calc.hasBasePrint, calc.basePrintCost,
+    calc.shippingCost, calc.packagingCost, additionalCosts,
+    calc.quantities, calc.wastage, calc.profitMargin
+  ]);
 
   // Fetch paper sizes based on selected paper type
   const { data: paperSizes, isLoading: isLoadingPaperSizes, error: paperSizesError } = useQuery({
@@ -37,19 +115,32 @@ const PrintCalculator = () => {
     enabled: !!calc.paperType
   });
 
-  // Debug logs to track data flow
-  console.log("PrintCalculator - Current state:", {
-    paperType: calc.paperType,
-    paperSizes,
-    plateType: calc.plateType,
-    cutsPerSheet: calc.cutsPerSheet,
-    sizeUnit: calc.sizeUnit,
-    width: calc.width,
-    height: calc.height,
-    validationError: calc.validationError,
-    printPerSheet: calc.printPerSheet,
-    results: calc.results,
-    breakdowns: calc.breakdowns
+  // Save job mutation
+  const saveJobMutation = useMutation({
+    mutationFn: (jobData: any) => {
+      if (currentJobId) {
+        return updateJob(currentJobId, jobData);
+      } else {
+        return createJob(jobData);
+      }
+    },
+    onSuccess: (data) => {
+      setCurrentJobId(data.id);
+      setHasUnsavedChanges(false);
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast({
+        title: currentJobId ? "อัพเดทงานสำเร็จ" : "บันทึกงานสำเร็จ",
+        description: `งาน "${jobName}" ได้ถูกบันทึกแล้ว`
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถบันทึกงานได้",
+        variant: "destructive"
+      });
+      console.error("Error saving job:", error);
+    }
   });
 
   // Handle paper size selection
@@ -61,10 +152,8 @@ const PrintCalculator = () => {
         height: selectedSize.height
       });
       
-      // Force layout calculation with the new paper size
       setTimeout(() => calc.forceLayoutCalculation(), 100);
       
-      // Clear validation errors related to paper size
       if (calc.validationError && 
          (calc.validationError.includes("กระดาษ") || 
           calc.validationError.includes("ขนาด"))) {
@@ -103,63 +192,33 @@ const PrintCalculator = () => {
     }
   };
 
-  // Show a warning if paper type is selected but no paper size is selected
-  useEffect(() => {
-    if (calc.paperType && !calc.selectedPaperSize && !isLoadingPaperSizes) {
-      console.log("Paper type selected but no paper size selected.");
-    }
-  }, [calc.paperType, calc.selectedPaperSize, isLoadingPaperSizes]);
-
   // Handle basic calculation (show results in current page)
   const handleCalculate = () => {
-    console.log("Calculate button clicked - pre-calculation state:", {
-      width: calc.width,
-      height: calc.height,
-      sizeUnit: calc.sizeUnit,
-      quantities: calc.quantities,
-      printPerSheet: calc.printPerSheet
-    });
+    console.log("Calculate button clicked");
     
-    // Set bypass to true to allow calculation even with manual values
     calc.setBypassLayoutValidation(true);
-    
-    // Preserve the current unit to keep it after calculation
     const currentUnit = calc.sizeUnit;
     
     if (calc.calculate()) {
-      // Show success toast
       toast({
         title: "คำนวณเสร็จสิ้น",
         description: "ดูผลการคำนวณด้านล่าง หรือไปหน้าตารางสรุปเพื่อดูรายละเอียด"
       });
       
-      console.log("Calculation successful - post-calculation state:", {
-        resultsLength: calc.results.length,
-        breakdownsLength: calc.breakdowns.length,
-        width: calc.width,
-        height: calc.height,
-        currentUnit: currentUnit
-      });
-      
-      // Make sure unit is preserved
       if (currentUnit !== calc.sizeUnit) {
-        console.log("Restoring unit to:", currentUnit);
         calc.setSizeUnit(currentUnit);
       }
     } else {
-      // Show error toast
       toast({
         title: "ไม่สามารถคำนวณได้",
         description: calc.validationError || "กรุณาตรวจสอบข้อมูลให้ถูกต้อง",
         variant: "destructive"
       });
-      console.log("Calculation failed:", calc.validationError);
     }
   };
 
   // Handle navigation to detailed cost preview
   const handleGoToSummary = () => {
-    // Store results and navigate to detailed cost preview
     const calculationData = {
       results: calc.results,
       breakdowns: calc.breakdowns,
@@ -171,28 +230,110 @@ const PrintCalculator = () => {
       paperType: calc.paperType,
       plateType: calc.plateType,
       selectedQuantityIndex: calc.selectedQuantityIndex,
-      additionalCosts: additionalCosts // Include additional costs
+      additionalCosts: additionalCosts
     };
 
-    // Store in localStorage as backup
     localStorage.setItem("print_calculator_results", JSON.stringify(calculationData));
-
-    // Navigate to cost preview page with data
     navigate('/cost-preview', { state: calculationData });
   };
 
-  // Check if we have calculated results
+  // Handle save job
+  const handleSaveJob = () => {
+    if (!jobName.trim() || !customerName.trim() || !quoteBy.trim()) {
+      toast({
+        title: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        description: "ชื่องาน, ชื่อลูกค้า และผู้ทำใบราคาเป็นข้อมูลที่จำเป็น",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const jobData = {
+      job_name: jobName,
+      customer_name: customerName,
+      quote_by: quoteBy,
+      job_type: calc.jobType,
+      paper_type: calc.paperType,
+      paper_grammage: calc.paperGrammage,
+      supplier: calc.supplier,
+      width: calc.width,
+      height: calc.height,
+      size_unit: calc.sizeUnit,
+      colors: calc.colors,
+      base_colors: calc.baseColors,
+      selected_paper_size: calc.selectedPaperSize,
+      plate_type: calc.plateType,
+      print_per_sheet: calc.printPerSheet,
+      selected_coating: calc.selectedCoating,
+      selected_coating_size: calc.selectedCoatingSize,
+      has_spot_uv: calc.hasSpotUv,
+      selected_spot_uv_size: calc.selectedSpotUvSize,
+      has_die_cut: calc.hasDieCut,
+      die_cut_cost: calc.dieCutCost,
+      has_base_print: calc.hasBasePrint,
+      base_print_cost: calc.basePrintCost,
+      shipping_cost: calc.shippingCost,
+      packaging_cost: calc.packagingCost,
+      additional_costs: additionalCosts,
+      quantities: calc.quantities,
+      wastage: calc.wastage,
+      profit_margin: calc.profitMargin,
+      results: calc.results,
+      breakdowns: calc.breakdowns,
+      selected_quantity_index: calc.selectedQuantityIndex
+    };
+
+    saveJobMutation.mutate(jobData);
+  };
+
+  // Handle save as new job
+  const handleSaveAsNew = () => {
+    setCurrentJobId(null);
+    handleSaveJob();
+  };
+
+  // Handle delete job
+  const handleDeleteJob = () => {
+    if (currentJobId && window.confirm('คุณแน่ใจหรือไม่ที่จะลบงานนี้?')) {
+      // Navigate to Jobs page which will handle the deletion
+      navigate('/jobs');
+    }
+  };
+
+  // Check if can save
+  const canSave = jobName.trim() && customerName.trim() && quoteBy.trim();
+  const isNewJob = !currentJobId;
   const hasResults = calc.results && calc.results.length > 0;
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Print Pal Calculator</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Print Pal Calculator</CardTitle>
+          <JobActions
+            isNewJob={isNewJob}
+            hasUnsavedChanges={hasUnsavedChanges}
+            canSave={canSave}
+            onSave={handleSaveJob}
+            onSaveAs={handleSaveAsNew}
+            onDelete={currentJobId ? handleDeleteJob : undefined}
+            currentJobName={currentJobId ? jobName : undefined}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left column - inputs */}
           <div className="space-y-4">
+            <JobBasicInfo
+              jobName={jobName}
+              customerName={customerName}
+              quoteBy={quoteBy}
+              onJobNameChange={setJobName}
+              onCustomerNameChange={setCustomerName}
+              onQuoteByChange={setQuoteBy}
+            />
+
             <ValidationError error={calc.validationError} />
 
             <BasicJobInfo
@@ -268,7 +409,6 @@ const PrintCalculator = () => {
               onPackagingCostChange={calc.setPackagingCost}
             />
 
-            {/* Additional Costs Manager */}
             <AdditionalCostsManager
               additionalCosts={additionalCosts}
               onCostsChange={setAdditionalCosts}
