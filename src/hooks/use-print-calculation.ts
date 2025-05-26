@@ -378,13 +378,27 @@ export const usePrintCalculation = () => {
   const getPaperPrice = async (paperTypeId: string, paperGrammageId: string, supplierId: string) => {
     console.log("Getting paper price for:", { paperTypeId, paperGrammageId, supplierId });
     
-    // Try to get from database first
-    if (paperTypeId && paperGrammageId && supplierId) {
+    // Try to get from database first - need to find a paper size for the enhanced function
+    if (paperTypeId && paperGrammageId && supplierId && selectedPaperSize) {
       try {
-        const priceData = await fetchPaperPriceEnhanced(paperTypeId, paperGrammageId, supplierId);
-        if (priceData) {
-          console.log("Found paper price in database:", priceData.price_per_kg);
-          return priceData.price_per_kg;
+        // Find the paper size ID that matches our selected paper size
+        let paperSizeId = "";
+        if (paperSizes) {
+          const matchingSize = paperSizes.find(size => 
+            size.width === selectedPaperSize.width && 
+            size.height === selectedPaperSize.height
+          );
+          if (matchingSize) {
+            paperSizeId = matchingSize.id;
+          }
+        }
+        
+        if (paperSizeId) {
+          const priceData = await fetchPaperPriceEnhanced(paperTypeId, paperGrammageId, paperSizeId, supplierId);
+          if (priceData) {
+            console.log("Found paper price in database:", priceData.price_per_kg);
+            return priceData.price_per_kg;
+          }
         }
         console.log("No paper price found in database, falling back to hardcoded values");
       } catch (error) {
