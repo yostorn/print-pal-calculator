@@ -218,3 +218,59 @@ export const fetchSpotUvCosts = async () => {
   if (error) throw error;
   return data;
 };
+
+// Ink Cost Management Functions
+export const createInkCost = async (inkCostData: {
+  plate_type: string;
+  ink_category: string;
+  cost_per_sheet: number;
+  minimum_cost: number;
+}) => {
+  const { data, error } = await supabase
+    .from('ink_costs')
+    .insert([inkCostData])
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error creating ink cost:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
+export const updateInkCost = async (id: string, inkCostData: {
+  plate_type?: string;
+  ink_category?: string;
+  cost_per_sheet?: number;
+  minimum_cost?: number;
+}) => {
+  const { data, error } = await supabase
+    .from('ink_costs')
+    .update(inkCostData)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error updating ink cost:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
+export const deleteInkCost = async (id: string) => {
+  const { error } = await supabase
+    .from('ink_costs')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error("Error deleting ink cost:", error);
+    throw error;
+  }
+  
+  return true;
+};
