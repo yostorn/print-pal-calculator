@@ -33,8 +33,8 @@ const PaperVariantManager = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<Partial<PaperVariant>>({});
   const [filters, setFilters] = useState({
-    paperType: "",
-    supplier: "",
+    paperType: "all",
+    supplier: "all",
     searchName: ""
   });
   const [showAddForm, setShowAddForm] = useState(false);
@@ -101,8 +101,8 @@ const PaperVariantManager = () => {
 
   // Filter variants based on current filters
   const filteredVariants = variants.filter(variant => {
-    if (filters.paperType && variant.paper_type_id !== filters.paperType) return false;
-    if (filters.supplier && variant.supplier_id !== filters.supplier) return false;
+    if (filters.paperType !== "all" && variant.paper_type_id !== filters.paperType) return false;
+    if (filters.supplier !== "all" && variant.supplier_id !== filters.supplier) return false;
     if (filters.searchName && !variant.paper_type?.label.toLowerCase().includes(filters.searchName.toLowerCase())) return false;
     return true;
   });
@@ -284,7 +284,7 @@ const PaperVariantManager = () => {
               <SelectValue placeholder="กรองตามประเภทกระดาษ" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">ทั้งหมด</SelectItem>
+              <SelectItem value="all">ทั้งหมด</SelectItem>
               {paperTypes.map(type => (
                 <SelectItem key={type.id} value={type.id}>{type.label}</SelectItem>
               ))}
@@ -296,7 +296,7 @@ const PaperVariantManager = () => {
               <SelectValue placeholder="กรองตามซัพพลายเออร์" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">ทั้งหมด</SelectItem>
+              <SelectItem value="all">ทั้งหมด</SelectItem>
               {suppliers.map(supplier => (
                 <SelectItem key={supplier.id} value={supplier.id}>{supplier.name}</SelectItem>
               ))}
