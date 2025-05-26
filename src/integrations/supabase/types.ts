@@ -146,6 +146,120 @@ export type Database = {
         }
         Relationships: []
       }
+      jobs: {
+        Row: {
+          additional_costs: Json | null
+          base_colors: number | null
+          base_print_cost: number | null
+          breakdowns: Json | null
+          colors: number | null
+          created_at: string
+          customer_name: string
+          die_cut_cost: number | null
+          has_base_print: boolean | null
+          has_die_cut: boolean | null
+          has_spot_uv: boolean | null
+          height: string | null
+          id: string
+          job_name: string
+          job_type: string | null
+          packaging_cost: number | null
+          paper_grammage: string | null
+          paper_type: string | null
+          plate_type: string | null
+          print_per_sheet: number | null
+          profit_margin: number | null
+          quantities: Json | null
+          quote_by: string
+          results: Json | null
+          selected_coating: string | null
+          selected_coating_size: string | null
+          selected_paper_size: Json | null
+          selected_quantity_index: number | null
+          selected_spot_uv_size: string | null
+          shipping_cost: number | null
+          size_unit: string | null
+          supplier: string | null
+          updated_at: string
+          wastage: number | null
+          width: string | null
+        }
+        Insert: {
+          additional_costs?: Json | null
+          base_colors?: number | null
+          base_print_cost?: number | null
+          breakdowns?: Json | null
+          colors?: number | null
+          created_at?: string
+          customer_name: string
+          die_cut_cost?: number | null
+          has_base_print?: boolean | null
+          has_die_cut?: boolean | null
+          has_spot_uv?: boolean | null
+          height?: string | null
+          id?: string
+          job_name: string
+          job_type?: string | null
+          packaging_cost?: number | null
+          paper_grammage?: string | null
+          paper_type?: string | null
+          plate_type?: string | null
+          print_per_sheet?: number | null
+          profit_margin?: number | null
+          quantities?: Json | null
+          quote_by: string
+          results?: Json | null
+          selected_coating?: string | null
+          selected_coating_size?: string | null
+          selected_paper_size?: Json | null
+          selected_quantity_index?: number | null
+          selected_spot_uv_size?: string | null
+          shipping_cost?: number | null
+          size_unit?: string | null
+          supplier?: string | null
+          updated_at?: string
+          wastage?: number | null
+          width?: string | null
+        }
+        Update: {
+          additional_costs?: Json | null
+          base_colors?: number | null
+          base_print_cost?: number | null
+          breakdowns?: Json | null
+          colors?: number | null
+          created_at?: string
+          customer_name?: string
+          die_cut_cost?: number | null
+          has_base_print?: boolean | null
+          has_die_cut?: boolean | null
+          has_spot_uv?: boolean | null
+          height?: string | null
+          id?: string
+          job_name?: string
+          job_type?: string | null
+          packaging_cost?: number | null
+          paper_grammage?: string | null
+          paper_type?: string | null
+          plate_type?: string | null
+          print_per_sheet?: number | null
+          profit_margin?: number | null
+          quantities?: Json | null
+          quote_by?: string
+          results?: Json | null
+          selected_coating?: string | null
+          selected_coating_size?: string | null
+          selected_paper_size?: Json | null
+          selected_quantity_index?: number | null
+          selected_spot_uv_size?: string | null
+          shipping_cost?: number | null
+          size_unit?: string | null
+          supplier?: string | null
+          updated_at?: string
+          wastage?: number | null
+          width?: string | null
+        }
+        Relationships: []
+      }
       paper_grammages: {
         Row: {
           created_at: string | null

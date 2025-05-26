@@ -43,7 +43,7 @@ export interface Job {
   additional_costs?: any[];
   
   // Quantities and settings
-  quantities?: number[];
+  quantities?: any;
   wastage?: number;
   profit_margin?: number;
   
@@ -57,7 +57,7 @@ export const createJob = async (jobData: Omit<Job, 'id' | 'created_at' | 'update
   console.log("Creating job with data:", jobData);
   
   const { data, error } = await supabase
-    .from('jobs' as any)
+    .from('jobs')
     .insert([jobData])
     .select()
     .single();
@@ -75,7 +75,7 @@ export const updateJob = async (id: string, jobData: Partial<Job>) => {
   console.log("Updating job with id:", id, "data:", jobData);
   
   const { data, error } = await supabase
-    .from('jobs' as any)
+    .from('jobs')
     .update(jobData)
     .eq('id', id)
     .select()
@@ -94,7 +94,7 @@ export const fetchJobs = async (searchTerm?: string, sortBy: string = 'created_a
   console.log("Fetching jobs with search:", searchTerm, "sort:", sortBy, sortOrder);
   
   let query = supabase
-    .from('jobs' as any)
+    .from('jobs')
     .select('*');
   
   if (searchTerm && searchTerm.trim()) {
@@ -118,7 +118,7 @@ export const fetchJobById = async (id: string): Promise<Job | null> => {
   console.log("Fetching job by id:", id);
   
   const { data, error } = await supabase
-    .from('jobs' as any)
+    .from('jobs')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -136,7 +136,7 @@ export const deleteJob = async (id: string) => {
   console.log("Deleting job with id:", id);
   
   const { error } = await supabase
-    .from('jobs' as any)
+    .from('jobs')
     .delete()
     .eq('id', id);
   

@@ -78,7 +78,13 @@ const PrintCalculator = () => {
       if (jobData.shipping_cost) calc.setShippingCost(jobData.shipping_cost);
       if (jobData.packaging_cost) calc.setPackagingCost(jobData.packaging_cost);
       if (jobData.additional_costs) setAdditionalCosts(jobData.additional_costs);
-      if (jobData.quantities) calc.setQuantities(jobData.quantities);
+      if (jobData.quantities) {
+        // Convert numbers to strings if needed
+        const stringQuantities = Array.isArray(jobData.quantities) 
+          ? jobData.quantities.map(q => typeof q === 'number' ? q.toString() : q)
+          : jobData.quantities;
+        calc.setQuantities(stringQuantities);
+      }
       if (jobData.wastage) calc.setWastage(jobData.wastage);
       if (jobData.profit_margin) calc.setProfitMargin(jobData.profit_margin);
       if (jobData.results) calc.setResults(jobData.results);
@@ -125,8 +131,8 @@ const PrintCalculator = () => {
       }
     },
     onSuccess: (data) => {
-      if (data && data.id) {
-        setCurrentJobId(data.id);
+      if (data && typeof data === 'object' && 'id' in data) {
+        setCurrentJobId(data.id as string);
       }
       setHasUnsavedChanges(false);
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
