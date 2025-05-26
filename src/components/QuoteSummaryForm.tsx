@@ -19,12 +19,15 @@ interface QuoteSummaryFormProps {
   // Pre-fill data from job
   initialCustomerName?: string;
   initialJobName?: string;
+  // Hide fields if data comes from saved job
+  hideJobFields?: boolean;
 }
 
 const QuoteSummaryForm: React.FC<QuoteSummaryFormProps> = ({ 
   onGeneratePDF,
   initialCustomerName = "",
-  initialJobName = ""
+  initialJobName = "",
+  hideJobFields = false
 }) => {
   const [customerName, setCustomerName] = useState(initialCustomerName);
   const [jobName, setJobName] = useState(initialJobName);
@@ -59,25 +62,36 @@ const QuoteSummaryForm: React.FC<QuoteSummaryFormProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="customerName">ชื่อลูกค้า</Label>
-          <Input
-            id="customerName"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="ระบุชื่อลูกค้า"
-          />
-        </div>
+        {!hideJobFields && (
+          <>
+            <div>
+              <Label htmlFor="customerName">ชื่อลูกค้า</Label>
+              <Input
+                id="customerName"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="ระบุชื่อลูกค้า"
+              />
+            </div>
 
-        <div>
-          <Label htmlFor="jobName">ชื่องาน</Label>
-          <Input
-            id="jobName"
-            value={jobName}
-            onChange={(e) => setJobName(e.target.value)}
-            placeholder="ระบุชื่องาน"
-          />
-        </div>
+            <div>
+              <Label htmlFor="jobName">ชื่องาน</Label>
+              <Input
+                id="jobName"
+                value={jobName}
+                onChange={(e) => setJobName(e.target.value)}
+                placeholder="ระบุชื่องาน"
+              />
+            </div>
+          </>
+        )}
+
+        {hideJobFields && (
+          <div className="bg-gray-50 p-3 rounded-md">
+            <p className="text-sm text-gray-600 mb-1">ลูกค้า: <span className="font-medium">{customerName}</span></p>
+            <p className="text-sm text-gray-600">งาน: <span className="font-medium">{jobName}</span></p>
+          </div>
+        )}
 
         <div>
           <Label>วันที่</Label>
