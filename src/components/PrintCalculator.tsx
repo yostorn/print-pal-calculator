@@ -125,7 +125,9 @@ const PrintCalculator = () => {
       }
     },
     onSuccess: (data) => {
-      setCurrentJobId(data.id);
+      if (data && data.id) {
+        setCurrentJobId(data.id);
+      }
       setHasUnsavedChanges(false);
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       toast({

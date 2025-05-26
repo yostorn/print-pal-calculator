@@ -111,7 +111,7 @@ export const fetchJobs = async (searchTerm?: string, sortBy: string = 'created_a
   }
   
   console.log("Jobs fetched successfully:", data?.length, "jobs");
-  return data as Job[];
+  return (data || []) as Job[];
 };
 
 export const fetchJobById = async (id: string): Promise<Job | null> => {
