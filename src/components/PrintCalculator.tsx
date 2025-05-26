@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -238,7 +237,12 @@ const PrintCalculator = () => {
       paperType: calc.paperType,
       plateType: calc.plateType,
       selectedQuantityIndex: calc.selectedQuantityIndex,
-      additionalCosts: additionalCosts
+      additionalCosts: additionalCosts,
+      // Add job info for PDF generation
+      jobName: jobName,
+      customerName: customerName,
+      quoteBy: quoteBy,
+      currentJobId: currentJobId
     };
 
     localStorage.setItem("print_calculator_results", JSON.stringify(calculationData));
@@ -300,6 +304,52 @@ const PrintCalculator = () => {
     handleSaveJob();
   };
 
+  // Handle create new job
+  const handleCreateNew = () => {
+    // Reset all form data
+    setCurrentJobId(null);
+    setJobName("");
+    setCustomerName("");
+    setQuoteBy("");
+    setAdditionalCosts([]);
+    setHasUnsavedChanges(false);
+    
+    // Reset calculator state
+    calc.setJobType("");
+    calc.setPaperType("");
+    calc.setPaperGrammage("");
+    calc.setSupplier("");
+    calc.setWidth("");
+    calc.setHeight("");
+    calc.setColors("1");
+    calc.setBaseColors("0");
+    calc.setSelectedPaperSize(null);
+    calc.setPlateType("");
+    calc.setPrintPerSheet(1);
+    calc.setSelectedCoating("");
+    calc.setSelectedCoatingSize("");
+    calc.setHasSpotUv(false);
+    calc.setSelectedSpotUvSize("");
+    calc.setHasDieCut(false);
+    calc.setDieCutCost("");
+    calc.setHasBasePrint(false);
+    calc.setBasePrintCost("");
+    calc.setShippingCost("");
+    calc.setPackagingCost("");
+    calc.setQuantities(["100", "500", "1000"]);
+    calc.setWastage(0.1);
+    calc.setProfitMargin(0.3);
+    calc.setResults([]);
+    calc.setBreakdowns([]);
+    calc.setSelectedQuantityIndex(0);
+    calc.setValidationError("");
+    
+    toast({
+      title: "สร้างงานใหม่",
+      description: "ฟอร์มได้ถูกรีเซ็ตเพื่อสร้างงานใหม่"
+    });
+  };
+
   // Handle delete job
   const handleDeleteJob = () => {
     if (currentJobId && window.confirm('คุณแน่ใจหรือไม่ที่จะลบงานนี้?')) {
@@ -324,8 +374,10 @@ const PrintCalculator = () => {
             canSave={canSave}
             onSave={handleSaveJob}
             onSaveAs={handleSaveAsNew}
+            onCreateNew={handleCreateNew}
             onDelete={currentJobId ? handleDeleteJob : undefined}
             currentJobName={currentJobId ? jobName : undefined}
+            isSaving={saveJobMutation.isPending}
           />
         </div>
       </CardHeader>
@@ -333,6 +385,7 @@ const PrintCalculator = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left column - inputs */}
           <div className="space-y-4">
+            {/* Move JobBasicInfo to the top */}
             <JobBasicInfo
               jobName={jobName}
               customerName={customerName}

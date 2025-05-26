@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -219,6 +218,25 @@ const CostPreview = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              {/* Show job info if available */}
+              {costData.jobName && (
+                <div>
+                  <span className="font-medium text-gray-600">ชื่องาน:</span>
+                  <p className="font-semibold">{costData.jobName}</p>
+                </div>
+              )}
+              {costData.customerName && (
+                <div>
+                  <span className="font-medium text-gray-600">ลูกค้า:</span>
+                  <p className="font-semibold">{costData.customerName}</p>
+                </div>
+              )}
+              {costData.quoteBy && (
+                <div>
+                  <span className="font-medium text-gray-600">ผู้ทำใบราคา:</span>
+                  <p className="font-semibold">{costData.quoteBy}</p>
+                </div>
+              )}
               <div>
                 <span className="font-medium text-gray-600">ขนาดชิ้นงาน:</span>
                 <p className="font-semibold">{costData.width} × {costData.height} {costData.sizeUnit}</p>
@@ -412,7 +430,11 @@ const CostPreview = () => {
                   ×
                 </Button>
               </div>
-              <QuoteSummaryForm onGeneratePDF={handleGeneratePDF} />
+              <QuoteSummaryForm 
+                onGeneratePDF={handleGeneratePDF}
+                initialCustomerName={costData.customerName || ""}
+                initialJobName={costData.jobName || ""}
+              />
             </div>
           </div>
         )}

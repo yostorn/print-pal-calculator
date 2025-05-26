@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Save, FileText, Trash2 } from "lucide-react";
+import { Save, FileText, Trash2, Plus, Loader2 } from "lucide-react";
 
 interface JobActionsProps {
   isNewJob: boolean;
@@ -9,8 +9,10 @@ interface JobActionsProps {
   canSave: boolean;
   onSave: () => void;
   onSaveAs: () => void;
+  onCreateNew: () => void;
   onDelete?: () => void;
   currentJobName?: string;
+  isSaving?: boolean;
 }
 
 const JobActions: React.FC<JobActionsProps> = ({
@@ -19,18 +21,24 @@ const JobActions: React.FC<JobActionsProps> = ({
   canSave,
   onSave,
   onSaveAs,
+  onCreateNew,
   onDelete,
-  currentJobName
+  currentJobName,
+  isSaving = false
 }) => {
   return (
     <div className="flex flex-wrap gap-2">
       <Button 
         onClick={onSave}
-        disabled={!canSave}
+        disabled={!canSave || isSaving}
         className="flex items-center gap-2"
         variant={hasUnsavedChanges ? "default" : "outline"}
       >
-        <Save className="h-4 w-4" />
+        {isSaving ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Save className="h-4 w-4" />
+        )}
         {isNewJob ? "บันทึกงาน" : `อัพเดท${hasUnsavedChanges ? " *" : ""}`}
       </Button>
 
@@ -39,11 +47,21 @@ const JobActions: React.FC<JobActionsProps> = ({
           onClick={onSaveAs}
           variant="outline"
           className="flex items-center gap-2"
+          disabled={!canSave || isSaving}
         >
           <FileText className="h-4 w-4" />
           บันทึกเป็นงานใหม่
         </Button>
       )}
+
+      <Button 
+        onClick={onCreateNew}
+        variant="outline"
+        className="flex items-center gap-2"
+      >
+        <Plus className="h-4 w-4" />
+        สร้างงานใหม่
+      </Button>
 
       {!isNewJob && onDelete && (
         <Button 

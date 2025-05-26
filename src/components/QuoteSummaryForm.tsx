@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,13 +16,26 @@ interface QuoteSummaryFormProps {
     jobName: string;
     date: Date;
   }) => void;
+  // Pre-fill data from job
+  initialCustomerName?: string;
+  initialJobName?: string;
 }
 
-const QuoteSummaryForm: React.FC<QuoteSummaryFormProps> = ({ onGeneratePDF }) => {
-  const [customerName, setCustomerName] = useState("");
-  const [jobName, setJobName] = useState("");
+const QuoteSummaryForm: React.FC<QuoteSummaryFormProps> = ({ 
+  onGeneratePDF,
+  initialCustomerName = "",
+  initialJobName = ""
+}) => {
+  const [customerName, setCustomerName] = useState(initialCustomerName);
+  const [jobName, setJobName] = useState(initialJobName);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  // Update form when initial values change
+  useEffect(() => {
+    setCustomerName(initialCustomerName);
+    setJobName(initialJobName);
+  }, [initialCustomerName, initialJobName]);
 
   const handleGeneratePDF = () => {
     if (!customerName.trim() || !jobName.trim()) {
