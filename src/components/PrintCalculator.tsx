@@ -83,7 +83,7 @@ const PrintCalculator = () => {
       if (jobData.profit_margin) calc.setProfitMargin(jobData.profit_margin);
       if (jobData.results) calc.setResults(jobData.results);
       if (jobData.breakdowns) calc.setBreakdowns(jobData.breakdowns);
-      if (jobData.selected_quantity_index) calc.setSelectedQuantityIndex(jobData.selected_quantity_index);
+      if (jobData.selected_quantity_index !== undefined) calc.setSelectedQuantityIndex(jobData.selected_quantity_index);
       
       setHasUnsavedChanges(false);
       

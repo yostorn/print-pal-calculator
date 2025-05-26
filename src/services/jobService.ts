@@ -57,7 +57,7 @@ export const createJob = async (jobData: Omit<Job, 'id' | 'created_at' | 'update
   console.log("Creating job with data:", jobData);
   
   const { data, error } = await supabase
-    .from('jobs')
+    .from('jobs' as any)
     .insert([jobData])
     .select()
     .single();
@@ -75,7 +75,7 @@ export const updateJob = async (id: string, jobData: Partial<Job>) => {
   console.log("Updating job with id:", id, "data:", jobData);
   
   const { data, error } = await supabase
-    .from('jobs')
+    .from('jobs' as any)
     .update(jobData)
     .eq('id', id)
     .select()
@@ -90,11 +90,11 @@ export const updateJob = async (id: string, jobData: Partial<Job>) => {
   return data;
 };
 
-export const fetchJobs = async (searchTerm?: string, sortBy: string = 'created_at', sortOrder: 'asc' | 'desc' = 'desc') => {
+export const fetchJobs = async (searchTerm?: string, sortBy: string = 'created_at', sortOrder: 'asc' | 'desc' = 'desc'): Promise<Job[]> => {
   console.log("Fetching jobs with search:", searchTerm, "sort:", sortBy, sortOrder);
   
   let query = supabase
-    .from('jobs')
+    .from('jobs' as any)
     .select('*');
   
   if (searchTerm && searchTerm.trim()) {
@@ -111,14 +111,14 @@ export const fetchJobs = async (searchTerm?: string, sortBy: string = 'created_a
   }
   
   console.log("Jobs fetched successfully:", data?.length, "jobs");
-  return data;
+  return data as Job[];
 };
 
-export const fetchJobById = async (id: string) => {
+export const fetchJobById = async (id: string): Promise<Job | null> => {
   console.log("Fetching job by id:", id);
   
   const { data, error } = await supabase
-    .from('jobs')
+    .from('jobs' as any)
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -129,14 +129,14 @@ export const fetchJobById = async (id: string) => {
   }
   
   console.log("Job fetched:", data);
-  return data;
+  return data as Job | null;
 };
 
 export const deleteJob = async (id: string) => {
   console.log("Deleting job with id:", id);
   
   const { error } = await supabase
-    .from('jobs')
+    .from('jobs' as any)
     .delete()
     .eq('id', id);
   
