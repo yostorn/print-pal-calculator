@@ -218,6 +218,12 @@ export const usePrintCalculation = () => {
     queryFn: fetchFormulaSettings
   });
 
+  // Fetch ink costs from the database
+  const { data: inkCosts } = useQuery({
+    queryKey: ['inkCosts'],
+    queryFn: fetchInkCosts
+  });
+
   // Set default values from settings
   useEffect(() => {
     if (settings) {

@@ -77,19 +77,20 @@ const BasicJobInfo: React.FC<BasicJobInfoProps> = ({
       </div>
 
       <PaperTypeDropdown
-        selectedPaperType={paperType}
-        onPaperTypeChange={onPaperTypeChange}
+        value={paperType}
+        onChange={onPaperTypeChange}
       />
 
       <PaperGrammageDropdown
-        selectedPaperType={paperType}
-        selectedGrammage={paperGrammage}
-        onGrammageChange={onPaperGrammageChange}
+        paperType={paperType}
+        value={paperGrammage}
+        onChange={onPaperGrammageChange}
       />
 
       <SupplierDropdown
-        selectedSupplier={supplier}
-        onSupplierChange={onSupplierChange}
+        value={supplier}
+        onChange={onSupplierChange}
+        paperType={paperType}
       />
 
       <SizeInputs
