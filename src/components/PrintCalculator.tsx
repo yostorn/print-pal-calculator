@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import ValidationError from "./calculator/ValidationError";
 import BasicJobInfo from "./calculator/BasicJobInfo";
 import CoatingOptions from "./CoatingOptions";
@@ -9,14 +8,13 @@ import QuantityInputs from "./calculator/QuantityInputs";
 import CalculationSettings from "./calculator/CalculationSettings";
 import ResultsPreview from "./calculator/ResultsPreview";
 import AdditionalCostsManager, { AdditionalCost } from "./calculator/AdditionalCostsManager";
+import PaperSizeSelection from "./calculator/PaperSizeSelection";
+import PlateTypeSelection from "./calculator/PlateTypeSelection";
+import PrintsPerSheetAdjustment from "./calculator/PrintsPerSheetAdjustment";
+import CalculationActions from "./calculator/CalculationActions";
 import { usePrintCalculation } from "@/hooks/use-print-calculation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPaperSizes } from "@/services/supabaseService";
-import { Label } from "@/components/ui/label";
-import { AlertCircle, Minus, Plus, ArrowRight } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import SpotUvOptions from "./SpotUvOptions";
@@ -217,117 +215,29 @@ const PrintCalculator = () => {
               onBaseColorsChange={calc.setBaseColors}
             />
 
-            {/* Paper Size Selection */}
-            {calc.paperType && (
-              <div className="rounded-md border p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <Label htmlFor="paperSize" className="text-sm font-medium">
-                    ขนาดกระดาษ
-                  </Label>
-                  {!calc.selectedPaperSize && !isLoadingPaperSizes && (
-                    <span className="text-xs text-red-500 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" /> กรุณาเลือกขนาดกระดาษ
-                    </span>
-                  )}
-                </div>
-                
-                {isLoadingPaperSizes ? (
-                  <div className="w-full h-10 bg-gray-100 animate-pulse rounded-md"></div>
-                ) : paperSizesError ? (
-                  <div className="text-sm text-red-500">ไม่สามารถโหลดขนาดกระดาษได้ ({paperSizesError.message})</div>
-                ) : (
-                  <Select 
-                    onValueChange={handlePaperSizeChange}
-                    value={paperSizes?.find(s => 
-                      calc.selectedPaperSize && 
-                      s.width === calc.selectedPaperSize.width && 
-                      s.height === calc.selectedPaperSize.height
-                    )?.id}
-                  >
-                    <SelectTrigger id="paperSize" className="w-full">
-                      <SelectValue placeholder="เลือกขนาดกระดาษ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paperSizes && paperSizes.length > 0 ? (
-                        paperSizes.map((size) => (
-                          <SelectItem key={size.id} value={size.id}>
-                            {size.name} ({size.width}&quot; × {size.height}&quot;)
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-sizes" disabled>
-                          ไม่พบขนาดกระดาษ
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
-                
-                {calc.selectedPaperSize && (
-                  <p className="mt-2 text-sm text-green-600">
-                    กระดาษขนาด {calc.selectedPaperSize.width}&quot; × {calc.selectedPaperSize.height}&quot;
-                  </p>
-                )}
-              </div>
-            )}
+            <PaperSizeSelection
+              paperType={calc.paperType}
+              paperSizes={paperSizes}
+              isLoadingPaperSizes={isLoadingPaperSizes}
+              paperSizesError={paperSizesError}
+              selectedPaperSize={calc.selectedPaperSize}
+              onPaperSizeChange={handlePaperSizeChange}
+            />
 
-            {/* Plate Type Selection */}
-            <div className="rounded-md border p-4">
-              <div className="mb-2">
-                <Label className="text-sm font-medium">ประเภทเพลท</Label>
-              </div>
-              <RadioGroup 
-                value={calc.plateType} 
-                onValueChange={calc.setPlateType}
-                className="flex gap-4"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem id="plate-type-2" value="ตัด 2" />
-                  <Label htmlFor="plate-type-2">ตัด 2</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem id="plate-type-4" value="ตัด 4" />
-                  <Label htmlFor="plate-type-4">ตัด 4</Label>
-                </div>
-              </RadioGroup>
-            </div>
+            <PlateTypeSelection
+              plateType={calc.plateType}
+              onPlateTypeChange={calc.setPlateType}
+            />
 
-            {/* Manual Prints Per Sheet Adjustment */}
-            {calc.selectedPaperSize && calc.width && calc.height && (
-              <div className="rounded-md border p-4">
-                <div className="mb-2">
-                  <Label className="text-sm font-medium">จำนวนชิ้นต่อแผ่น</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon"
-                    onClick={decrementPrintCount}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Input 
-                    type="number"
-                    value={manualPrintCount}
-                    onChange={(e) => handlePrintCountChange(e.target.value)}
-                    className="w-20 text-center"
-                    min="1"
-                  />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon"
-                    onClick={incrementPrintCount}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <div className="text-sm text-green-600 ml-2">
-                    เรียบร้อย! ชิ้นงานสามารถวางได้ {manualPrintCount} ชิ้นต่อแผ่น
-                  </div>
-                </div>
-              </div>
-            )}
+            <PrintsPerSheetAdjustment
+              selectedPaperSize={calc.selectedPaperSize}
+              width={calc.width}
+              height={calc.height}
+              manualPrintCount={manualPrintCount}
+              onPrintCountChange={handlePrintCountChange}
+              onIncrementPrintCount={incrementPrintCount}
+              onDecrementPrintCount={decrementPrintCount}
+            />
 
             <CoatingOptions
               selectedCoating={calc.selectedCoating}
@@ -381,26 +291,15 @@ const PrintCalculator = () => {
               onProfitMarginChange={calc.setProfitMargin}
             />
 
-            <div className="space-y-2">
-              <Button 
-                className="w-full" 
-                onClick={handleCalculate}
-                disabled={!calc.paperType || !calc.selectedPaperSize || !calc.width || !calc.height}
-              >
-                คำนวณ
-              </Button>
-              
-              {hasResults && (
-                <Button 
-                  className="w-full" 
-                  variant="default"
-                  onClick={handleGoToSummary}
-                >
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  ไปหน้าตารางสรุปต้นทุน
-                </Button>
-              )}
-            </div>
+            <CalculationActions
+              paperType={calc.paperType}
+              selectedPaperSize={calc.selectedPaperSize}
+              width={calc.width}
+              height={calc.height}
+              hasResults={hasResults}
+              onCalculate={handleCalculate}
+              onGoToSummary={handleGoToSummary}
+            />
           </div>
 
           {/* Right column - results */}
