@@ -44,12 +44,9 @@ const Admin = () => {
         <Card className="w-full">
           <CardContent className="p-6">
             <Tabs defaultValue="paper" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-1">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-1">
                 <TabsTrigger value="paper" className="text-xs lg:text-sm">
                   กระดาษ
-                </TabsTrigger>
-                <TabsTrigger value="suppliers" className="text-xs lg:text-sm">
-                  ซัพพลายเออร์
                 </TabsTrigger>
                 <TabsTrigger value="ink-costs" className="text-xs lg:text-sm">
                   ต้นทุนหมึก
@@ -73,8 +70,9 @@ const Admin = () => {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="paper-master" className="space-y-4">
-                      <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+                      <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
                         <TabsTrigger value="paper-master">Paper Master</TabsTrigger>
+                        <TabsTrigger value="suppliers">ซัพพลายเออร์</TabsTrigger>
                         <TabsTrigger value="paper-types">ประเภทกระดาษ</TabsTrigger>
                         <TabsTrigger value="paper-grammages">แกรมกระดาษ</TabsTrigger>
                         <TabsTrigger value="paper-sizes">ขนาดกระดาษ</TabsTrigger>
@@ -83,7 +81,11 @@ const Admin = () => {
                       <TabsContent value="paper-master">
                         <ImprovedPaperVariantManager />
                       </TabsContent>
-                      
+
+                      <TabsContent value="suppliers">
+                        <SupplierManager />
+                      </TabsContent>
+
                       <TabsContent value="paper-types">
                         <PaperTypeManager />
                       </TabsContent>
@@ -100,9 +102,6 @@ const Admin = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="suppliers">
-                <SupplierManager />
-              </TabsContent>
 
               <TabsContent value="ink-costs">
                 <InkCostManager />
